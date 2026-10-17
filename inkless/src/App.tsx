@@ -7,9 +7,12 @@ import {
 import DrawingCanvas from "./components/DrawingCanvas";
 import Toolbar from "./components/Toolbar";
 import StatusBar from "./components/StatusBar";
+import SignIn from "./components/SignIn";
+import Home from "./components/Home";
 import "./styles.css";
 
 export default function App() {
+  const [view, setView] = useState<"signin" | "home" | "editor">("signin");
   const [drawing, setDrawing] = useState<DrawingState>(emptyDrawing);
   const [thickness, setThickness] = useState(4);
   const [status] = useState<TrackingStatus>("manual-mode");
@@ -32,6 +35,9 @@ export default function App() {
     // TODO (Person 2): lib/exportPng.ts → draw strokes on white canvas → toBlob → download
     alert("Export not built yet");
   };
+
+  if (view === "signin") return <SignIn onSignIn={() => setView("home")} />;
+  if (view === "home") return <Home onOpenEditor={() => setView("editor")} />;
 
   return (
     <div className="app">
