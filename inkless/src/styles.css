@@ -6,15 +6,22 @@
 
 :root {
   /* --- Your palette: change these and the whole app updates --- */
-  --bg: #f5f5f5;
+  --vanilla-cream: #fff7e6;
+  --sage-leaf: #a8b58a;
+  --misty-sky: #a9b7c6;
+  --midnight-lagoon: #2d3a47;
+
+  --bg: var(--vanilla-cream);
   --panel: #ffffff;
-  --text: #111111;
-  --accent: #3b5bdb;
-  --border: #d0d0d0;
+  --text: #000000;
+  --accent: var(--midnight-lagoon);
+  --border: var(--misty-sky);
 
   /* --- Your type --- */
-  --font: system-ui, sans-serif;
+  --font: "KoPub Batang", "Gowun Batang", serif;
+  --font-display: "Kaisei Decol", serif;
   --radius: 8px;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -47,3 +54,85 @@ body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--
 .status { padding: 4px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.85rem; }
 .status[data-status="drawing"] { border-color: var(--accent); }
 .status[data-status="hand-not-found"] { border-style: dashed; }
+
+/* Shared */
+button { font: inherit; color: inherit; }
+:where(.home, .signin) button { background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+:is(.home, .signin) :is(button, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.logo { position: relative; overflow: hidden; margin: 0; flex-shrink: 0; }
+.logo img { position: absolute; max-width: none; }
+.logo-small { width: 154px; height: 48px; }
+.logo-small img { width: 203.57%; height: 435.42%; left: -50.16%; top: -162.5%; }
+.logo-large { width: 281px; height: 97px; }
+.logo-large img { width: 207.12%; height: 400%; left: -53.91%; top: -149.37%; }
+
+/* Home screen (Figma "MacBook Air - 1") */
+.home { display: flex; min-height: 100vh; background: var(--bg); color: var(--text); text-align: left; }
+.sidebar {
+  width: 246px; flex-shrink: 0; display: flex; flex-direction: column; padding: 20px 0 21px;
+  position: sticky; top: 0; height: 100vh; /* keeps Settings pinned while the page scrolls */
+  background: rgba(169, 183, 198, 0.3);
+}
+.sidebar .logo { margin-left: 6px; }
+:where(.sidebar) ul { list-style: none; margin: 0; padding: 0; }
+.sidebar-nav { margin-top: 15px; }
+.sidebar-nav button { display: block; width: 100%; height: 33px; margin-bottom: 7px; padding-left: 41px; font-size: 16px; }
+.sidebar-nav button:hover { background: rgba(45, 58, 71, 0.48); }
+.sidebar-group { margin: 9px 0 10px 14px; font-family: var(--font-display); font-size: 16px; }
+.folder-tree li { display: flex; align-items: center; gap: 4px; height: 31px; font-size: 14px; }
+.folder-tree img { object-fit: contain; }
+.settings { display: flex; align-items: center; gap: 5px; margin: auto 0 0 16px; font-size: 16px; }
+
+.home-main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; padding: 188px 0 0; }
+.avatar { position: absolute; top: 16px; right: 18px; border-radius: 50%; }
+.greeting { margin: 0 0 37px; font-family: var(--font-display); font-size: 48px; font-weight: 400; line-height: 35px; letter-spacing: normal; color: inherit; }
+.new-project {
+  display: flex; align-items: center; justify-content: space-between; width: 640px; max-width: calc(100% - 32px); height: 81px;
+  padding: 0 34px 0 40px; border-radius: 60px; background: rgba(169, 183, 198, 0.3); font-size: 31px;
+}
+.new-project:hover { background: rgba(169, 183, 198, 0.5); }
+.recent { align-self: stretch; margin-top: 104px; padding-left: 53px; }
+.recent h2 { margin: 0 0 39px; font-family: var(--font-display); font-size: 28px; font-weight: 400; line-height: normal; letter-spacing: normal; color: inherit; }
+.recent-row { display: flex; gap: 37px; list-style: none; margin: 0; padding: 0 53px 24px 0; overflow-x: auto; }
+.recent-card {
+  position: relative; flex: 0 0 254px; height: 319px; border-radius: 4px;
+  border: 8px solid rgba(168, 181, 138, 0.39); background: rgba(255, 255, 255, 0.83);
+}
+.recent-open { position: absolute; inset: 0; width: 100%; }
+.recent-card:hover { border-color: rgba(168, 181, 138, 0.7); }
+.recent-more { position: absolute; top: 9px; right: 7px; display: flex; }
+
+/* Sign-in screen (Figma "MacBook Air - 2") */
+.signin {
+  display: flex; flex-direction: column; align-items: flex-start; min-height: 100vh;
+  padding: 136px 24px 34px max(24px, 25vw); background: var(--bg); color: var(--text); text-align: left;
+}
+.signin-welcome { margin: 0; font-size: 20px; line-height: 22px; }
+.signin .logo { margin: -6px 0 0 -13px; }
+.signin-tagline { margin: -2px 0 0; font-size: 16px; line-height: 18px; }
+.signin-buttons { display: flex; flex-direction: column; gap: 21px; width: 414px; max-width: 100%; margin-top: 36px; }
+.signin-buttons button {
+  display: flex; align-items: center; justify-content: center; gap: 8px; height: 55px; border-radius: 40px;
+  font-family: var(--font-display); font-size: 24px;
+}
+.signin-buttons .signin-google { background: rgba(168, 181, 138, 0.3); }
+.signin-buttons .signin-microsoft { background: rgba(169, 183, 198, 0.3); }
+.signin-buttons .signin-email { background: rgba(45, 58, 71, 0.3); }
+.signin-buttons button:hover { filter: brightness(0.95); }
+.signin-new { margin: 26px 0 0 9px; font-family: var(--font-display); font-size: 13px; }
+.signin-create { margin-left: 9px; font-family: var(--font-display); font-size: 16px; text-decoration: underline; text-underline-offset: 3px; }
+.signin-footer { display: flex; align-items: center; gap: 24px; margin: auto 0 0 9px; padding-top: 48px; }
+.signin-footer a { font-family: var(--font-display); font-size: 11px; color: var(--midnight-lagoon); text-decoration: none; }
+.signin-footer a:hover { text-decoration: underline; }
+
+/* Narrow screens */
+@media (max-width: 720px) {
+  .home { flex-direction: column; }
+  .sidebar { width: auto; position: static; height: auto; }
+  .settings { margin-top: 16px; }
+  .home-main { padding-top: 80px; }
+  .greeting { font-size: 36px; }
+  .new-project { font-size: 22px; height: 64px; }
+  .recent { padding-left: 16px; }
+  .signin-footer { flex-wrap: wrap; gap: 12px; }
+}
