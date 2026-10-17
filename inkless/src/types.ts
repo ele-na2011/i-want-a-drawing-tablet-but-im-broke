@@ -12,12 +12,16 @@ export interface Stroke {
   id: string;
   points: Point[];
   thickness: number; // px at export size
+  color: string;     // CSS colour, or ERASER to rub out
 }
+
+export const ERASER = "eraser";
 
 // What the whole drawing looks like at any moment.
 export interface DrawingState {
   strokes: Stroke[];      // finished strokes
   active: Stroke | null;  // stroke currently being drawn, if any
+  undone: Stroke[];       // undone strokes, newest last, for redo
 }
 
 export type TrackingStatus =

@@ -16,123 +16,193 @@
   --text: #000000;
   --accent: var(--midnight-lagoon);
   --border: var(--misty-sky);
+  --tint: rgba(169, 183, 198, 0.3);   /* misty sky wash: sidebar, pill, buttons */
+  --tint-strong: rgba(169, 183, 198, 0.43);
 
-  /* --- Your type --- */
+  /* --- Your type: 16px base, 1.25 (major third) scale, in rem so browser font settings apply --- */
   --font: "KoPub Batang", "Gowun Batang", serif;
   --font-display: "Kaisei Decol", serif;
+  --step--1: 0.8rem;    /* 13px  captions, footer links */
+  --step-0: 1rem;       /* 16px  body, nav, buttons */
+  --step-1: 1.25rem;    /* 20px  large buttons, section titles */
+  --step-2: 1.5625rem;  /* 25px */
+  --step-3: 1.953rem;   /* 31px  page greeting */
+
+  /* --- Spacing: 4/8px grid --- */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+
   --radius: 8px;
   color-scheme: light;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); }
+body { margin: 0; font-family: var(--font); font-size: var(--step-0); line-height: 1.5; background: var(--bg); color: var(--text); }
+button { font: inherit; color: inherit; }
+:where(.home, .signin, .whiteboard) button { background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+:where(.home, .signin, .whiteboard) :is(button, a, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:where(.home, .signin, .whiteboard) :is(h1, h2) { color: inherit; letter-spacing: normal; }
 
-/* Page layout: header / main / footer */
-.app { display: flex; flex-direction: column; height: 100vh; }
-.header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; }
-.header h1 { margin: 0; font-size: 1.4rem; }
-.main { flex: 1; display: grid; grid-template-columns: 1fr 2fr; gap: 16px; padding: 0 20px; min-height: 0; }
-.footer { padding: 12px 20px; }
+/* Logo: one image, cropped differently per size */
+.logo { position: relative; overflow: hidden; margin: 0; flex-shrink: 0; }
+.logo img { position: absolute; max-width: none; }
+.logo-small { width: 128px; height: 40px; }
+.logo-small img { width: 203.57%; height: 435.42%; left: -50.16%; top: -162.5%; }
+.logo-large { width: 232px; height: 80px; }
+.logo-large img { width: 207.12%; height: 400%; left: -53.91%; top: -149.37%; }
 
-/* Panels */
-.camera-panel, .canvas-panel {
-  background: var(--panel); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden; min-height: 0;
+/* ---------- Home ---------- */
+.home { display: flex; min-height: 100vh; background: var(--bg); color: var(--text); }
+.sidebar {
+  position: sticky; top: 0; height: 100vh; /* keeps Settings pinned while the page scrolls */
+  width: 240px; flex-shrink: 0; display: flex; flex-direction: column;
+  padding: var(--space-4) 0; background: var(--tint);
 }
-.placeholder { display: grid; place-items: center; height: 100%; color: #888; }
+.sidebar .logo { margin: 0 0 var(--space-4) var(--space-3); }
+:where(.sidebar) ul { list-style: none; margin: 0; padding: 0; }
+.sidebar-nav button, .folder-tree button { display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: var(--space-2) var(--space-4); }
+.sidebar-nav img, .folder-tree img { width: 18px; height: 18px; object-fit: contain; }
+.folder-tree button:hover, .folder-tree button[aria-pressed="true"], .sidebar-nav button:hover:not(:disabled) { background: rgba(45, 58, 71, 0.16); }
+.sidebar-nav button:disabled { opacity: 0.45; cursor: default; background: none; }
+.workspaces { margin-top: var(--space-4); overflow-y: auto; }
+.workspace { display: block; width: 100%; padding: var(--space-2) 14px; font-family: var(--font-display); }
+.workspace:hover, .workspace[aria-pressed="true"] { background: rgba(45, 58, 71, 0.16); }
+.folder-tree button { padding-block: var(--space-1); font-size: 0.875rem; }
+.settings { display: flex; align-items: center; gap: var(--space-2); margin: auto var(--space-4) 0; }
+.settings img { width: 24px; height: 24px; }
 
-/* Canvas */
-.canvas-wrap { width: 100%; height: 100%; }
-.canvas-wrap canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.home-main {
+  position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
+  padding: clamp(var(--space-8), 18vh, 160px) var(--space-6) var(--space-7);
+}
+.avatar { position: absolute; top: var(--space-4); right: var(--space-5); border-radius: 50%; }
+.greeting { margin: 0 0 var(--space-5); font-family: var(--font-display); font-size: var(--step-3); font-weight: 400; line-height: 1.2; }
+.new-project {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  width: 100%; max-width: 480px; min-height: 56px; padding: 0 var(--space-5) 0 var(--space-6);
+  border-radius: 999px; background: var(--tint); font-size: var(--step-1);
+}
+.new-project:hover { background: rgba(169, 183, 198, 0.5); }
+.new-project img { width: 20px; height: 20px; }
 
-/* Toolbar */
-.toolbar { display: flex; gap: 12px; align-items: center; }
-.toolbar button { padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); cursor: pointer; }
-.toolbar button:hover { border-color: var(--accent); }
+.recent { align-self: stretch; max-width: 1040px; margin: var(--space-8) auto 0; width: 100%; }
+.recent-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
+.recent-new { padding: var(--space-1) var(--space-3); border-radius: 999px; background: var(--tint); font-size: 0.875rem; }
+.recent-new:hover { background: rgba(169, 183, 198, 0.5); }
+.recent h2 { margin: 0; font-family: var(--font-display); font-size: var(--step-1); font-weight: 400; line-height: 1.3; }
+.recent-row {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: var(--space-5);
+  list-style: none; margin: 0; padding: 0;
+}
+.recent-card {
+  position: relative; aspect-ratio: 4 / 5; border-radius: 4px;
+  border: 6px solid rgba(168, 181, 138, 0.39); background: rgba(255, 255, 255, 0.83);
+  transition: border-color 0.15s;
+}
+.recent-card:hover { border-color: rgba(168, 181, 138, 0.7); }
+.recent-open { position: absolute; inset: 0; width: 100%; display: flex; flex-direction: column; }
+.recent-open img, .recent-blank { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #fff; } /* show the whole page, never crop it */
+.recent-name { padding: var(--space-1) var(--space-2); font-size: 0.875rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-top: 1px solid rgba(168, 181, 138, 0.39); }
+.recent-empty { margin: 0; color: var(--midnight-lagoon); }
+.recent-more { position: absolute; top: var(--space-1); right: var(--space-1); display: flex; padding: var(--space-1); border-radius: 4px; background: rgba(255, 255, 255, 0.8); }
+.recent-more img { width: 15px; height: 15px; }
+
+/* ---------- Sign-in ---------- */
+.signin {
+  display: flex; flex-direction: column; align-items: flex-start; min-height: 100vh;
+  padding: clamp(var(--space-7), 15vh, 136px) var(--space-5) var(--space-6) max(var(--space-5), 25vw);
+  background: var(--bg); color: var(--text);
+}
+.signin-welcome { margin: 0; font-size: var(--step-1); line-height: 1.2; }
+.signin .logo { margin: -4px 0 0 -11px; }
+.signin-tagline { margin: 0; line-height: 1.3; }
+.signin-buttons { display: flex; flex-direction: column; gap: var(--space-3); width: 360px; max-width: 100%; margin-top: var(--space-6); }
+.signin-buttons button {
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 48px; border-radius: 999px;
+  font-family: var(--font-display); font-size: var(--step-1);
+}
+.signin-buttons img { width: 20px; height: 20px; }
+.signin-buttons .signin-google { background: rgba(168, 181, 138, 0.3); }
+.signin-buttons .signin-microsoft { background: var(--tint); }
+.signin-buttons .signin-email { background: rgba(45, 58, 71, 0.3); }
+.signin-buttons button:hover { filter: brightness(0.95); }
+.signin-new { margin: var(--space-5) 0 0 var(--space-2); font-family: var(--font-display); font-size: var(--step--1); }
+.signin-create { margin-left: var(--space-2); font-family: var(--font-display); text-decoration: underline; text-underline-offset: 3px; }
+.signin-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); margin: auto 0 0 var(--space-2); padding-top: var(--space-7); }
+.signin-footer a { font-family: var(--font-display); font-size: var(--step--1); color: var(--midnight-lagoon); text-decoration: none; }
+.signin-footer a:hover { text-decoration: underline; }
+
+/* ---------- Whiteboard (editor) ---------- */
+.whiteboard { position: relative; display: flex; flex-direction: column; height: 100vh; background: var(--bg); color: var(--text); }
+.whiteboard-bar { background: var(--tint-strong); }
+/* Menu strip: 46px, items 18px with 38px between them, 32px from each edge */
+.menu { position: relative; display: flex; align-items: center; gap: 22px; height: 46px; padding: 0 24px; background: var(--tint-strong); font-size: 1.125rem; color: #040000; }
+.menu > button { padding: var(--space-1) var(--space-2); border-radius: var(--radius); }
+.menu > button:hover, .menu > button[aria-pressed="true"] { background: rgba(255, 247, 230, 0.6); }
+.menu > .menu-back { position: absolute; left: 2px; padding: 0 6px; font-size: 1.5rem; line-height: 1; } /* sits in the margin so Save stays where Figma has it */
+.menu-spacer { flex: 1; }
+/* Tool row: 66px, starts 19px in, 38px between groups */
+.toolbar { display: flex; align-items: center; gap: 38px; height: 66px; padding: 0 19px; }
+.tool-group { display: flex; align-items: center; gap: 8px; }
+.tool-group:has(.swatches) { gap: 12px; }
+.swatches { display: flex; align-items: center; gap: 18px; }
+.tool { display: grid; place-items: center; border-radius: var(--radius); }
+.tool img { width: 100%; height: 100%; object-fit: contain; }
+.tool[aria-label="Undo"], .tool[aria-label="Redo"] { width: 34px; height: 30px; }
+.tool[aria-label="Pen"] { width: 45px; height: 40px; }
+.tool[aria-label="Eraser"] { width: 47px; height: 41px; }
+.tool:hover:not(:disabled), .tool[aria-pressed="true"] { background: rgba(255, 247, 230, 0.6); }
+:where(.whiteboard) button:disabled { opacity: 0.35; cursor: default; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px #000; }
+.thickness { display: flex; align-items: center; gap: 20px; font-size: 1.125rem; color: #040000; }
+/* Figma slider: thin black line, 16px black knob */
+.thickness input { -webkit-appearance: none; appearance: none; width: 102px; height: 16px; margin: 0; background: linear-gradient(#000, #000) center / 100% 2px no-repeat; cursor: pointer; }
+.thickness input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border: 0; border-radius: 50%; background: #000; }
+.thickness input::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #000; }
+
+.canvas-panel { flex: 1; min-height: 0; }
+.canvas-wrap { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.board-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.canvas-wrap canvas { position: relative; width: 100%; height: 100%; display: block; touch-action: none; cursor: none; } /* the ring below is the cursor */
+.cursor-ring { position: absolute; border: 1px solid; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+
+.camera-panel {
+  position: absolute; right: 29px; bottom: 29px;
+  width: 301px; height: 234px; padding: 12px 20px; background: var(--tint-strong);
+}
+.camera-panel h2 { margin: 0; font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; line-height: 1.4; }
 
 /* Status: also add an icon/text change per state, not just color */
-.status { padding: 4px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.85rem; }
+.status { white-space: nowrap; padding: var(--space-1) var(--space-3); border: 1px solid var(--border); border-radius: 999px; font-size: 0.875rem; background: var(--bg); }
 .status[data-status="drawing"] { border-color: var(--accent); }
 .status[data-status="hand-not-found"] { border-style: dashed; }
 
-/* Shared */
-button { font: inherit; color: inherit; }
-:where(.home, .signin) button { background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
-:is(.home, .signin) :is(button, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.logo { position: relative; overflow: hidden; margin: 0; flex-shrink: 0; }
-.logo img { position: absolute; max-width: none; }
-.logo-small { width: 154px; height: 48px; }
-.logo-small img { width: 203.57%; height: 435.42%; left: -50.16%; top: -162.5%; }
-.logo-large { width: 281px; height: 97px; }
-.logo-large img { width: 207.12%; height: 400%; left: -53.91%; top: -149.37%; }
-
-/* Home screen (Figma "MacBook Air - 1") */
-.home { display: flex; min-height: 100vh; background: var(--bg); color: var(--text); text-align: left; }
-.sidebar {
-  width: 246px; flex-shrink: 0; display: flex; flex-direction: column; padding: 20px 0 21px;
-  position: sticky; top: 0; height: 100vh; /* keeps Settings pinned while the page scrolls */
-  background: rgba(169, 183, 198, 0.3);
-}
-.sidebar .logo { margin-left: 6px; }
-:where(.sidebar) ul { list-style: none; margin: 0; padding: 0; }
-.sidebar-nav { margin-top: 15px; }
-.sidebar-nav button { display: block; width: 100%; height: 33px; margin-bottom: 7px; padding-left: 41px; font-size: 16px; }
-.sidebar-nav button:hover { background: rgba(45, 58, 71, 0.48); }
-.sidebar-group { margin: 9px 0 10px 14px; font-family: var(--font-display); font-size: 16px; }
-.folder-tree li { display: flex; align-items: center; gap: 4px; height: 31px; font-size: 14px; }
-.folder-tree img { object-fit: contain; }
-.settings { display: flex; align-items: center; gap: 5px; margin: auto 0 0 16px; font-size: 16px; }
-
-.home-main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; padding: 188px 0 0; }
-.avatar { position: absolute; top: 16px; right: 18px; border-radius: 50%; }
-.greeting { margin: 0 0 37px; font-family: var(--font-display); font-size: 48px; font-weight: 400; line-height: 35px; letter-spacing: normal; color: inherit; }
-.new-project {
-  display: flex; align-items: center; justify-content: space-between; width: 640px; max-width: calc(100% - 32px); height: 81px;
-  padding: 0 34px 0 40px; border-radius: 60px; background: rgba(169, 183, 198, 0.3); font-size: 31px;
-}
-.new-project:hover { background: rgba(169, 183, 198, 0.5); }
-.recent { align-self: stretch; margin-top: 104px; padding-left: 53px; }
-.recent h2 { margin: 0 0 39px; font-family: var(--font-display); font-size: 28px; font-weight: 400; line-height: normal; letter-spacing: normal; color: inherit; }
-.recent-row { display: flex; gap: 37px; list-style: none; margin: 0; padding: 0 53px 24px 0; overflow-x: auto; }
-.recent-card {
-  position: relative; flex: 0 0 254px; height: 319px; border-radius: 4px;
-  border: 8px solid rgba(168, 181, 138, 0.39); background: rgba(255, 255, 255, 0.83);
-}
-.recent-open { position: absolute; inset: 0; width: 100%; }
-.recent-card:hover { border-color: rgba(168, 181, 138, 0.7); }
-.recent-more { position: absolute; top: 9px; right: 7px; display: flex; }
-
-/* Sign-in screen (Figma "MacBook Air - 2") */
-.signin {
-  display: flex; flex-direction: column; align-items: flex-start; min-height: 100vh;
-  padding: 136px 24px 34px max(24px, 25vw); background: var(--bg); color: var(--text); text-align: left;
-}
-.signin-welcome { margin: 0; font-size: 20px; line-height: 22px; }
-.signin .logo { margin: -6px 0 0 -13px; }
-.signin-tagline { margin: -2px 0 0; font-size: 16px; line-height: 18px; }
-.signin-buttons { display: flex; flex-direction: column; gap: 21px; width: 414px; max-width: 100%; margin-top: 36px; }
-.signin-buttons button {
-  display: flex; align-items: center; justify-content: center; gap: 8px; height: 55px; border-radius: 40px;
-  font-family: var(--font-display); font-size: 24px;
-}
-.signin-buttons .signin-google { background: rgba(168, 181, 138, 0.3); }
-.signin-buttons .signin-microsoft { background: rgba(169, 183, 198, 0.3); }
-.signin-buttons .signin-email { background: rgba(45, 58, 71, 0.3); }
-.signin-buttons button:hover { filter: brightness(0.95); }
-.signin-new { margin: 26px 0 0 9px; font-family: var(--font-display); font-size: 13px; }
-.signin-create { margin-left: 9px; font-family: var(--font-display); font-size: 16px; text-decoration: underline; text-underline-offset: 3px; }
-.signin-footer { display: flex; align-items: center; gap: 24px; margin: auto 0 0 9px; padding-top: 48px; }
-.signin-footer a { font-family: var(--font-display); font-size: 11px; color: var(--midnight-lagoon); text-decoration: none; }
-.signin-footer a:hover { text-decoration: underline; }
-
-/* Narrow screens */
+/* ---------- Narrow screens ---------- */
 @media (max-width: 720px) {
   .home { flex-direction: column; }
-  .sidebar { width: auto; position: static; height: auto; }
-  .settings { margin-top: 16px; }
-  .home-main { padding-top: 80px; }
-  .greeting { font-size: 36px; }
-  .new-project { font-size: 22px; height: 64px; }
-  .recent { padding-left: 16px; }
-  .signin-footer { flex-wrap: wrap; gap: 12px; }
+  .sidebar { position: static; width: auto; height: auto; }
+  .settings { margin-top: var(--space-4); }
+  .home-main { padding: var(--space-8) var(--space-4) var(--space-7); }
+  .recent-row { grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
+  .camera-panel { width: 160px; right: var(--space-4); bottom: var(--space-4); }
+  .camera-panel h2 { font-size: var(--step-0); }
+  .menu, .toolbar { overflow-x: auto; gap: var(--space-4); } /* scrollable rows instead of a wrapped stack */
+  .menu > *, .toolbar > * { flex-shrink: 0; }
+  .camera-panel { height: auto; aspect-ratio: 9 / 7; }
 }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- Dialog (name / confirm / error) ---------- */
+.ask { width: min(360px, calc(100% - 32px)); padding: var(--space-5); border: 0; border-radius: 12px; background: var(--bg); color: var(--text); box-shadow: 0 8px 32px rgba(45, 58, 71, 0.25); }
+.ask::backdrop { background: rgba(45, 58, 71, 0.35); }
+.ask h2 { margin: 0 0 var(--space-3); font-family: var(--font-display); font-size: var(--step-1); font-weight: 400; color: inherit; }
+.ask p { margin: 0 0 var(--space-3); }
+.ask :is(input, select) { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: #fff; font: inherit; font-size: var(--step-0); }
+.ask-buttons { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+.ask-buttons button { padding: var(--space-2) var(--space-4); border: 0; border-radius: 999px; background: var(--tint); cursor: pointer; }
+.ask-buttons .ask-extra { margin-right: auto; color: #b3261e; }
+.ask-buttons .ask-ok { background: var(--midnight-lagoon); color: var(--vanilla-cream); }
+.ask-buttons button:disabled { opacity: 0.4; cursor: default; }
+.ask :is(button, input, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

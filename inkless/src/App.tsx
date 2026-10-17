@@ -1,21 +1,56 @@
-import { useCallback, useState } from "react";
-import type { DrawingState, Point, TrackingStatus } from "./types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ERASER, type DrawingState, type Point } from "./types";
 import {
-  allStrokes, beginStroke, clear, emptyDrawing,
-  extendStroke, finishStroke, undo,
+  allStrokes, beginStroke, emptyDrawing,
+  extendStroke, finishStroke, redo, undo,
 } from "./lib/strokes";
+import {
+  addDoc, addFolder, addProject, allPlaces, loadStore, removeDoc, saveStore, updateDoc,
+  type Place, type Store,
+} from "./lib/projects";
+import { downloadPdf, readImage, thumbnail } from "./lib/canvasImage";
 import DrawingCanvas from "./components/DrawingCanvas";
-import Toolbar from "./components/Toolbar";
-import StatusBar from "./components/StatusBar";
+import Toolbar, { COLORS, type Tool } from "./components/Toolbar";
 import SignIn from "./components/SignIn";
 import Home from "./components/Home";
+import AskDialog, { type Ask } from "./components/AskDialog";
 import "./styles.css";
+
+const placeKey = (p: Place) => `${p.projectId ?? ""}|${p.folderId ?? ""}`;
+const keyPlace = (k: string): Place => {
+  const [projectId, folderId] = k.split("|");
+  return { projectId: projectId || null, folderId: folderId || null };
+};
 
 export default function App() {
   const [view, setView] = useState<"signin" | "home" | "editor">("signin");
+  const [store, setStore] = useState<Store>(() => loadStore());
+  const storeRef = useRef(store); // latest store for code that runs after an await
+  storeRef.current = store;
+  const [place, setPlace] = useState<Place>({ projectId: null, folderId: null });
+  const [docId, setDocId] = useState<string | null>(null);
   const [drawing, setDrawing] = useState<DrawingState>(emptyDrawing);
+  const [background, setBackground] = useState<string | null>(null);
+  const [saved, setSaved] = useState({ strokes: emptyDrawing.strokes, background: null as string | null });
+  const [justSaved, setJustSaved] = useState(false);
   const [thickness, setThickness] = useState(4);
-  const [status] = useState<TrackingStatus>("manual-mode");
+  const [tool, setTool] = useState<Tool>("pen");
+  const [color, setColor] = useState(COLORS[0].value);
+  const [penOn, setPenOn] = useState(true);
+  const [ask, setAsk] = useState<Ask | null>(null); // the one open dialog, if any
+  const board = useRef<HTMLElement>(null);
+  const importInput = useRef<HTMLInputElement>(null);
+
+  const doc = store.docs.find((d) => d.id === docId);
+  const dirty = drawing.strokes !== saved.strokes || background !== saved.background;
+
+  // Warn before closing the tab with unsaved work.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   // ============ THE ONE FUNCTION EVERYONE FEEDS ============
   // Mouse input calls this now. Later the hand tracker calls it:
@@ -24,53 +59,185 @@ export default function App() {
   const onSample = useCallback(
     (p: Point, penDown: boolean) => {
       setDrawing((d) => {
-        if (!penDown) return finishStroke(d);
-        return d.active ? extendStroke(d, p) : beginStroke(d, p, thickness);
+        if (!penDown || !penOn) return finishStroke(d);
+        if (d.active) return extendStroke(d, p);
+        return tool === "eraser"
+          ? beginStroke(d, p, thickness * 4, ERASER) // an eraser as thin as the pen is unusable
+          : beginStroke(d, p, thickness, color);
       });
     },
-    [thickness]
+    [thickness, tool, color, penOn]
   );
 
-  const handleExport = () => {
-    // TODO (Person 2): lib/exportPng.ts → draw strokes on white canvas → toBlob → download
-    alert("Export not built yet");
+  const tell = (title: string, message: string) => setAsk({ title, message, confirm: "OK", cancel: null, onOk: () => {} });
+
+  const persist = (next: Store) => {
+    setStore(next);
+    storeRef.current = next;
+    if (!saveStore(next)) tell("Couldn't save", "This browser's storage is full or blocked. Export a PDF to keep your work.");
   };
 
+  // The board's current content, sized as it is on screen (previews and PDF keep these proportions).
+  const page = () => {
+    const c = board.current?.querySelector("canvas");
+    const size = c && c.clientWidth ? { w: c.clientWidth, h: c.clientHeight } : doc?.size ?? { w: 1280, h: 720 };
+    return { strokes: drawing.strokes, background, size };
+  };
+
+  const handleSave = async () => {
+    if (!docId) return;
+    const p = page();
+    const thumb = await thumbnail(p);
+    persist(updateDoc(storeRef.current, docId, { ...p, thumbnail: thumb }));
+    setSaved({ strokes: p.strokes, background: p.background });
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 1500);
+  };
+
+  const handleExport = async () => {
+    try {
+      await downloadPdf(page(), doc?.name ?? "drawing");
+    } catch {
+      tell("Couldn't export", "The page couldn't be turned into a PDF. Try again, or save and reload.");
+    }
+  };
+
+  const handleImport = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      setBackground(await readImage(file));
+    } catch (e) {
+      tell("Couldn't import", (e as Error).message);
+    }
+  };
+
+  const openDoc = (id: string) => {
+    const d = store.docs.find((x) => x.id === id);
+    if (!d) return;
+    setDocId(id);
+    setDrawing({ ...emptyDrawing, strokes: d.strokes });
+    setBackground(d.background);
+    setSaved({ strokes: d.strokes, background: d.background });
+    setView("editor");
+  };
+
+  const newDoc = () => setAsk({
+    title: "Name your document", input: "Untitled", confirm: "Create",
+    onOk: (name) => {
+      const [next, d] = addDoc(storeRef.current, name, place);
+      persist(next);
+      setDocId(d.id);
+      setDrawing(emptyDrawing);
+      setBackground(null);
+      setSaved({ strokes: emptyDrawing.strokes, background: null });
+      setView("editor");
+    },
+  });
+
+  const newProject = () => setAsk({
+    title: "Name your project", message: "A project is a workspace for folders and documents.",
+    input: "New project", confirm: "Create",
+    onOk: (name) => {
+      const [next, p] = addProject(storeRef.current, name);
+      persist(next);
+      setPlace({ projectId: p.id, folderId: null });
+    },
+  });
+
+  const newFolder = () => {
+    const projectId = place.projectId;
+    if (!projectId) return;
+    setAsk({
+      title: "Name your folder", input: "New folder", confirm: "Create",
+      onOk: (name) => {
+        const [next, f] = addFolder(storeRef.current, name, projectId, place.folderId);
+        persist(next);
+        setPlace({ projectId, folderId: f.id });
+      },
+    });
+  };
+
+  const docMenu = (id: string) => {
+    const d = store.docs.find((x) => x.id === id);
+    if (!d) return;
+    setAsk({
+      title: d.name, message: "Move to", confirm: "Move",
+      input: placeKey(d),
+      options: allPlaces(store).map((o) => ({ value: placeKey(o.place), label: o.label })),
+      onOk: (key) => persist(updateDoc(storeRef.current, id, keyPlace(key))),
+      extra: {
+        label: "Delete",
+        onClick: () => setAsk({
+          title: `Delete "${d.name}"?`, message: "This can't be undone.", confirm: "Delete",
+          onOk: () => persist(removeDoc(storeRef.current, id)),
+        }),
+      },
+    });
+  };
+
+  const goHome = async () => {
+    if (dirty) await handleSave(); // leaving the board saves, so work is never dropped silently
+    setView("home");
+  };
+
+  const dialog = ask && <AskDialog key={ask.title + ask.confirm} ask={ask} onClose={() => setAsk(null)} />;
+
   if (view === "signin") return <SignIn onSignIn={() => setView("home")} />;
-  if (view === "home") return <Home onOpenEditor={() => setView("editor")} />;
+  if (view === "home") {
+    return (
+      <>
+        <Home
+          store={store} place={place} onPlace={setPlace}
+          onNewDoc={newDoc} onNewProject={newProject} onNewFolder={newFolder}
+          onOpenDoc={openDoc} onDocMenu={docMenu}
+        />
+        {dialog}
+      </>
+    );
+  }
 
   return (
-    <div className="app">
-      {/* ---------- HEADER: logo / title ---------- */}
-      <header className="header">
-        <h1>Inkless</h1>
-        <StatusBar status={status} />
+    <div className="whiteboard">
+      {/* ---------- MENU + TOOLS (Figma "MacBook Air - 3") ---------- */}
+      <header className="whiteboard-bar">
+        <nav className="menu" aria-label="File">
+          <button className="menu-back" onClick={goHome} aria-label="Back to dashboard" title="Back to dashboard">‹</button>
+          <button onClick={handleSave}>{justSaved ? "Saved" : "Save"}</button>
+          <button onClick={handleExport}>Export</button>
+          <button onClick={() => importInput.current?.click()}>Import</button>
+          <input
+            ref={importInput} type="file" accept="image/*" hidden
+            onChange={(e) => { handleImport(e.target.files?.[0]); e.target.value = ""; }}
+          />
+          <span className="menu-spacer" />
+          <button aria-pressed={penOn} onClick={() => setPenOn(true)}>Pen on</button>
+          <button aria-pressed={!penOn} onClick={() => setPenOn(false)}>Pen off</button>
+        </nav>
+        <Toolbar
+          tool={tool} onTool={setTool}
+          color={color} onColor={setColor}
+          thickness={thickness} onThickness={setThickness}
+          onUndo={() => setDrawing(undo)} onRedo={() => setDrawing(redo)}
+          canUndo={drawing.strokes.length > 0} canRedo={drawing.undone.length > 0}
+        />
       </header>
 
-      <main className="main">
-        {/* ---------- LEFT: camera preview + calibration ---------- */}
-        <section className="camera-panel">
-          {/* TODO (Person 1): <CameraView /> goes here */}
-          {/* TODO (Person 3): <CalibrationOverlay /> goes on top of it */}
-          <div className="placeholder">Camera goes here</div>
-        </section>
-
-        {/* ---------- RIGHT: drawing canvas ---------- */}
-        <section className="canvas-panel">
-          <DrawingCanvas strokes={allStrokes(drawing)} onSample={onSample} />
-        </section>
+      {/* ---------- CANVAS: fills the page ---------- */}
+      <main className="canvas-panel" ref={board}>
+        <DrawingCanvas
+          strokes={allStrokes(drawing)} onSample={onSample} background={background}
+          cursorColor={tool === "eraser" ? "rgba(0, 0, 0, 0.56)" : color}
+          cursorSize={Math.max(8, tool === "eraser" ? thickness * 4 : thickness)}
+        />
       </main>
 
-      {/* ---------- FOOTER: tools ---------- */}
-      <footer className="footer">
-        <Toolbar
-          thickness={thickness}
-          onThickness={setThickness}
-          onUndo={() => setDrawing((d) => undo(d))}
-          onClear={() => setDrawing(clear())}
-          onExport={handleExport}
-        />
-      </footer>
+      {/* ---------- CAMERA: floating preview + calibration ---------- */}
+      <section className="camera-panel" aria-label="Camera view">
+        <h2>Camera view</h2>
+        {/* TODO (Person 1): <CameraView /> goes here */}
+        {/* TODO (Person 3): <CalibrationOverlay /> goes on top of it */}
+      </section>
+      {dialog}
     </div>
   );
 }
