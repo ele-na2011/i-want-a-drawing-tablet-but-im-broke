@@ -64,26 +64,26 @@ button { font: inherit; color: inherit; }
 /* ---------- Home (Figma "MacBook Air - 1") ---------- */
 .home { display: flex; min-height: 100vh; background: var(--bg); color: var(--text); }
 .sidebar {
-  position: sticky; top: 0; height: 100vh; isolation: isolate; /* sticky keeps Settings pinned; isolate keeps the ::before tint under the contents */
+  position: sticky; top: 0; height: 100vh; overflow: hidden; /* sticky keeps Settings pinned; hidden clips the contents while it folds */
   width: calc(246 * var(--u)); flex-shrink: 0; display: flex; flex-direction: column;
-  padding: calc(20 * var(--u)) 0 calc(21 * var(--u));
+  padding: calc(20 * var(--u)) 0 calc(21 * var(--u)); background: var(--tint);
   font-size: calc(16 * var(--u));
-}
-/* Collapse (Figma "MacBook Air - 5" -> "- 7"): the tinted panel shrinks to a 60px rail while the contents fade;
-   the sidebar keeps its 246px slot so the main column doesn't move, as in frame 7. */
-.sidebar::before {
-  content: ""; position: absolute; inset: 0 auto 0 0; z-index: -1; width: 100%; background: var(--tint);
   transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.sidebar-body { display: flex; flex-direction: column; flex: 1; min-height: 0; transition: opacity 0.18s ease 0.14s, visibility 0s; }
+/* Collapse (Figma "MacBook Air - 5" -> "- 7"): the whole sidebar narrows to a 60px rail, so its contents (highlight
+   included) are cut off as it goes and the main column widens with it, keeping the greeting centred. */
+.sidebar-body {
+  display: flex; flex-direction: column; flex: 1; min-height: 0; width: calc(246 * var(--u)); /* fixed, so rows clip instead of squashing */
+  transition: opacity 0.2s ease 0.12s, visibility 0s;
+}
 .sidebar-toggle {
   position: absolute; top: calc(9 * var(--u)); left: calc(207 * var(--u)); z-index: 1; display: flex;
   padding: calc(8 * var(--u)); border-radius: 4px; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .sidebar-toggle:hover { background: rgba(169, 183, 198, 0.4); }
 .sidebar-toggle img { width: calc(16 * var(--u)); height: calc(14 * var(--u)); }
-.sidebar-collapsed .sidebar::before { width: calc(60 * var(--u)); }
-.sidebar-collapsed .sidebar-body { opacity: 0; visibility: hidden; transition: opacity 0.12s ease, visibility 0s 0.12s; }
+.sidebar-collapsed .sidebar { width: calc(60 * var(--u)); }
+.sidebar-collapsed .sidebar-body { opacity: 0; visibility: hidden; transition: opacity 0.24s ease, visibility 0s 0.24s; }
 .sidebar-collapsed .sidebar-toggle { transform: translateX(calc(-193 * var(--u))); } /* centred in the 60px rail */
 .sidebar .logo { margin-left: calc(6 * var(--u)); }
 :where(.sidebar) ul { list-style: none; margin: 0; padding: 0; }
@@ -233,7 +233,8 @@ button { font: inherit; color: inherit; }
 /* ---------- Narrow screens ---------- */
 @media (max-width: 720px) {
   .home { flex-direction: column; }
-  .sidebar { position: relative; width: auto; height: auto; }
+  .sidebar { position: static; width: auto; height: auto; }
+  .sidebar-body { width: auto; }
   .sidebar-toggle { display: none; } /* stacked layout has no room for a rail */
   .settings { margin-top: var(--space-4); }
   .home-main { padding-top: var(--space-8); }
