@@ -1,0 +1,49 @@
+/* ===================================================================
+   ALL VISUAL DESIGN LIVES HERE. Edit the variables first, then the rules.
+   Put your own images/icons/fonts in src/assets/ and reference them, e.g.
+     background: url("./assets/paper-texture.png");
+   =================================================================== */
+
+:root {
+  /* --- Your palette: change these and the whole app updates --- */
+  --bg: #f5f5f5;
+  --panel: #ffffff;
+  --text: #111111;
+  --accent: #3b5bdb;
+  --border: #d0d0d0;
+
+  /* --- Your type --- */
+  --font: system-ui, sans-serif;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); }
+
+/* Page layout: header / main / footer */
+.app { display: flex; flex-direction: column; height: 100vh; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; }
+.header h1 { margin: 0; font-size: 1.4rem; }
+.main { flex: 1; display: grid; grid-template-columns: 1fr 2fr; gap: 16px; padding: 0 20px; min-height: 0; }
+.footer { padding: 12px 20px; }
+
+/* Panels */
+.camera-panel, .canvas-panel {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; min-height: 0;
+}
+.placeholder { display: grid; place-items: center; height: 100%; color: #888; }
+
+/* Canvas */
+.canvas-wrap { width: 100%; height: 100%; }
+.canvas-wrap canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+
+/* Toolbar */
+.toolbar { display: flex; gap: 12px; align-items: center; }
+.toolbar button { padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); cursor: pointer; }
+.toolbar button:hover { border-color: var(--accent); }
+
+/* Status: also add an icon/text change per state, not just color */
+.status { padding: 4px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.85rem; }
+.status[data-status="drawing"] { border-color: var(--accent); }
+.status[data-status="hand-not-found"] { border-style: dashed; }
