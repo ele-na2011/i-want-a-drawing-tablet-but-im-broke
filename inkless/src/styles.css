@@ -117,6 +117,7 @@ button { font: inherit; color: inherit; }
   display: flex; align-items: center; justify-content: space-between;
   width: calc(466 * var(--u)); max-width: calc(100% - 32px); height: calc(52.3 * var(--u));
   padding: 0 calc(21 * var(--u)) 0 calc(29 * var(--u)); border-radius: calc(60 * var(--u));
+  position: relative; top: calc(15 * var(--u));
   background: var(--tint); font-size: calc(20 * var(--u)); line-height: calc(21 * var(--u)); color: rgba(41, 41, 41, 0.8);
 }
 .new-project:hover { background: rgba(169, 183, 198, 0.5); }
