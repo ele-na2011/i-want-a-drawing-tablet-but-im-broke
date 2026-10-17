@@ -2,6 +2,9 @@ import type { Stroke } from "../types";
 
 // A project is a workspace. Folders live inside a project (and can nest).
 // A document sits in a folder, at a project's top level, or on its own.
+// Every document is one US Letter page (8.5 x 11 in at 96 css px per inch), the shape of the dashboard previews.
+export const PAGE = { w: 816, h: 1056 };
+
 export interface Project { id: string; name: string }
 export interface Folder { id: string; name: string; projectId: string; parentId: string | null }
 export interface Doc {
@@ -11,7 +14,7 @@ export interface Doc {
   folderId: string | null;
   strokes: Stroke[];
   background: string | null;      // imported image (data URL), drawn under the strokes
-  size: { w: number; h: number }; // board size in css px when last saved, so previews/PDF keep proportions
+  size: { w: number; h: number }; // page size in css px; always PAGE once loaded
   thumbnail: string | null;
   updatedAt: number;
 }
@@ -29,7 +32,9 @@ const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}${Math.ran
 export function loadStore(storage: Pick<Storage, "getItem"> = localStorage): Store {
   try {
     const s = JSON.parse(storage.getItem(KEY) ?? "null");
-    if (s && Array.isArray(s.projects) && Array.isArray(s.folders) && Array.isArray(s.docs)) return s;
+    if (s && Array.isArray(s.projects) && Array.isArray(s.folders) && Array.isArray(s.docs)) {
+      return { ...s, docs: s.docs.map(toPage) };
+    }
     // v1 called documents "projects" and had no workspaces: keep the drawings as loose documents.
     const old = JSON.parse(storage.getItem(OLD_KEY) ?? "null");
     if (old && Array.isArray(old.projects)) {
@@ -38,11 +43,25 @@ export function loadStore(storage: Pick<Storage, "getItem"> = localStorage): Sto
         docs: old.projects.map((p: { id: string; name: string; strokes: Stroke[]; updatedAt: number }) => ({
           id: p.id, name: p.name, projectId: null, folderId: null, strokes: p.strokes ?? [],
           background: null, size: { w: 1280, h: 720 }, thumbnail: null, updatedAt: p.updatedAt ?? Date.now(),
-        })),
+        })).map(toPage),
       };
     }
   } catch { /* corrupt or blocked storage: start empty rather than crash */ }
   return empty();
+}
+
+// Documents drawn before pages existed used the whole (wide) screen. Scale them onto the page,
+// keeping their shape: same width, height and thickness scaled to match.
+export function toPage(d: Doc): Doc {
+  if (d.size.w === PAGE.w && d.size.h === PAGE.h) return d;
+  const k = PAGE.w / d.size.w;
+  const ky = (d.size.h * k) / PAGE.h;
+  return {
+    ...d,
+    size: { ...PAGE },
+    thumbnail: null, // redrawn on next save
+    strokes: d.strokes.map((s) => ({ ...s, thickness: s.thickness * k, points: s.points.map((p) => ({ ...p, y: p.y * ky })) })),
+  };
 }
 
 // Returns false when the browser refuses the write (storage full or blocked), so the caller can tell the user.
@@ -68,7 +87,7 @@ export function addFolder(store: Store, name: string, projectId: string, parentI
 export function addDoc(store: Store, name: string, place: Place): [Store, Doc] {
   const d: Doc = {
     id: newId("d"), name, projectId: place.projectId, folderId: place.folderId,
-    strokes: [], background: null, size: { w: 1280, h: 720 }, thumbnail: null, updatedAt: Date.now(),
+    strokes: [], background: null, size: { ...PAGE }, thumbnail: null, updatedAt: Date.now(),
   };
   return [{ ...store, docs: [d, ...store.docs] }, d];
 }

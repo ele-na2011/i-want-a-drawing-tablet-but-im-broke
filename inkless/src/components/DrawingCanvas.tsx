@@ -1,49 +1,38 @@
 import { useEffect, useRef, useState } from "react";
 import type { Point, Stroke } from "../types";
 import { drawStrokes } from "../lib/draw";
+import { PAGE } from "../lib/projects";
 
 interface Props {
   strokes: Stroke[];
   // Called for every input sample. penDown=false means pen lifted.
   onSample: (p: Point, penDown: boolean) => void;
   cursorColor: string; // ring follows the pointer in the pen colour...
-  cursorSize: number;  // ...and is as wide as the stroke it would draw (css px)
+  cursorSize: number;  // ...and is as wide as the stroke it would draw (page px)
   background: string | null; // imported image shown under the ink
 }
 
-// UI OWNER: this is the drawing surface. Size/borders live in styles.css (.canvas-wrap, canvas).
+// Pixels per page px: at least 2 so the page stays sharp when zoomed in or on high-density screens.
+const DENSITY = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
+
+// UI OWNER: this is the drawing surface, one fixed-size page. PageView moves and zooms it.
 export default function DrawingCanvas({ strokes, onSample, cursorColor, cursorSize, background }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const down = useRef(false);
-  const [size, setSize] = useState({ w: 0, h: 0, dpr: 1 });
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
 
-  // Match the canvas pixels to its on-screen box; a fixed size would stretch strokes unevenly.
+  // Redraw everything whenever strokes change.
   useEffect(() => {
     const c = ref.current!;
-    const measure = () => {
-      const dpr = window.devicePixelRatio || 1;
-      setSize({ w: Math.round(c.clientWidth * dpr), h: Math.round(c.clientHeight * dpr), dpr });
-    };
-    measure(); // size right away; the observer only reports later changes
-    const ro = new ResizeObserver(measure);
-    ro.observe(c);
-    return () => ro.disconnect();
-  }, []);
-
-  // Redraw everything whenever strokes or size change.
-  useEffect(() => {
-    const c = ref.current!;
-    if (!size.w || !size.h) return;
-    c.width = size.w; // resizing also clears the canvas
-    c.height = size.h;
-    drawStrokes(c.getContext("2d")!, strokes, c.width, c.height, size.dpr);
-  }, [strokes, size]);
+    const ctx = c.getContext("2d")!;
+    ctx.clearRect(0, 0, c.width, c.height);
+    drawStrokes(ctx, strokes, c.width, c.height, DENSITY);
+  }, [strokes]);
 
   // Mouse/touch input so you can build and test without the webcam.
   // Delete or keep as a fallback once tracking works.
   const toPoint = (e: React.PointerEvent): Point => {
-    const r = ref.current!.getBoundingClientRect();
+    const r = ref.current!.getBoundingClientRect(); // includes the zoom, so points stay 0..1
     return {
       x: (e.clientX - r.left) / r.width,
       y: (e.clientY - r.top) / r.height,
@@ -56,16 +45,21 @@ export default function DrawingCanvas({ strokes, onSample, cursorColor, cursorSi
       {background && <img className="board-bg" src={background} alt="" />}
       <canvas
         ref={ref}
-        onPointerDown={(e) => { down.current = true; onSample(toPoint(e), true); }}
+        width={PAGE.w * DENSITY}
+        height={PAGE.h * DENSITY}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return; // middle/right button belong to panning
+          down.current = true;
+          e.currentTarget.setPointerCapture(e.pointerId); // keep the stroke going if the pen leaves the page
+          onSample(toPoint(e), true);
+        }}
         onPointerMove={(e) => {
           setHover({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY });
           if (down.current) onSample(toPoint(e), true);
         }}
-        onPointerUp={(e) => { down.current = false; onSample(toPoint(e), false); }}
-        onPointerLeave={(e) => {
-          setHover(null);
-          if (down.current) { down.current = false; onSample(toPoint(e), false); }
-        }}
+        onPointerUp={(e) => { if (down.current) { down.current = false; onSample(toPoint(e), false); } }}
+        onPointerCancel={(e) => { if (down.current) { down.current = false; onSample(toPoint(e), false); } }}
+        onPointerLeave={() => setHover(null)}
       />
       {hover && (
         <div

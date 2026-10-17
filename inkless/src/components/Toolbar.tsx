@@ -32,7 +32,8 @@ export default function Toolbar(p: Props) {
         <button className="tool" aria-label="Redo" onClick={p.onRedo} disabled={!p.canRedo}><img src={redoIcon} alt="" /></button>
       </div>
       <div className="tool-group">
-        <button className="tool" aria-label="Pen" aria-pressed={p.tool === "pen"} onClick={() => p.onTool("pen")}>
+        {/* picking the pen resets the ink to black */}
+        <button className="tool" aria-label="Pen" aria-pressed={p.tool === "pen"} onClick={() => { p.onTool("pen"); p.onColor(COLORS[0].value); }}>
           <img src={pen} alt="" />
         </button>
         <div className="swatches" role="group" aria-label="Ink colour">

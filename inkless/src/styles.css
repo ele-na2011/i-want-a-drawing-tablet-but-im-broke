@@ -4,6 +4,14 @@
      background: url("./assets/paper-texture.png");
    =================================================================== */
 
+/* KoPub Batang (KOPUS free font), the Figma body font. swap = show the fallback while the 2.6 MB file loads. */
+@font-face {
+  font-family: "KoPub Batang";
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/npm/font-kopub@1.0.2/fonts/KoPubBatang-Medium.woff") format("woff");
+}
+
 :root {
   /* --- Your palette: change these and the whole app updates --- */
   --vanilla-cream: #fff7e6;
@@ -19,18 +27,18 @@
   --tint: rgba(169, 183, 198, 0.3);   /* misty sky wash: sidebar, pill, buttons */
   --tint-strong: rgba(169, 183, 198, 0.43);
 
-  /* --- Your type: 16px base, 1.25 (major third) scale, in rem so browser font settings apply --- */
+  /* --- Your type: the Figma fonts --- */
   --font: "KoPub Batang", "Gowun Batang", serif;
   --font-display: "Kaisei Decol", serif;
-  --step--1: 0.8rem;    /* 13px  captions, footer links */
-  --step-0: 1rem;       /* 16px  body, nav, buttons */
-  --step-1: 1.25rem;    /* 20px  large buttons, section titles */
-  --step-2: 1.5625rem;  /* 25px */
-  --step-3: 1.953rem;   /* 31px  page greeting */
 
-  /* --- Spacing: 4/8px grid --- */
+  /* --- Figma scale: the screens were drawn on a 1280px frame. 1u = 1 Figma px at 1280 wide,
+     shrinking on smaller windows and growing a little on big ones, so proportions always match. --- */
+  --u: clamp(0.72px, calc(100vw / 1280), 1.2px);
+
+  /* --- Spacing for the editor/dialog (4/8px grid) --- */
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --step--1: 0.8rem; --step-0: 1rem; --step-1: 1.25rem;
 
   --radius: 8px;
   color-scheme: light;
@@ -46,90 +54,96 @@ button { font: inherit; color: inherit; }
 /* Logo: one image, cropped differently per size */
 .logo { position: relative; overflow: hidden; margin: 0; flex-shrink: 0; }
 .logo img { position: absolute; max-width: none; }
-.logo-small { width: 128px; height: 40px; }
+.logo-small { width: calc(154 * var(--u)); height: calc(48 * var(--u)); }
 .logo-small img { width: 203.57%; height: 435.42%; left: -50.16%; top: -162.5%; }
-.logo-large { width: 232px; height: 80px; }
+.logo-large { width: calc(281 * var(--u)); height: calc(97 * var(--u)); }
 .logo-large img { width: 207.12%; height: 400%; left: -53.91%; top: -149.37%; }
 
-/* ---------- Home ---------- */
+/* ---------- Home (Figma "MacBook Air - 1") ---------- */
 .home { display: flex; min-height: 100vh; background: var(--bg); color: var(--text); }
 .sidebar {
   position: sticky; top: 0; height: 100vh; /* keeps Settings pinned while the page scrolls */
-  width: 240px; flex-shrink: 0; display: flex; flex-direction: column;
-  padding: var(--space-4) 0; background: var(--tint);
+  width: calc(246 * var(--u)); flex-shrink: 0; display: flex; flex-direction: column;
+  padding: calc(20 * var(--u)) 0 calc(21 * var(--u)); background: var(--tint);
+  font-size: calc(16 * var(--u));
 }
-.sidebar .logo { margin: 0 0 var(--space-4) var(--space-3); }
+.sidebar .logo { margin-left: calc(6 * var(--u)); }
 :where(.sidebar) ul { list-style: none; margin: 0; padding: 0; }
-.sidebar-nav button, .folder-tree button { display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: var(--space-2) var(--space-4); }
-.sidebar-nav img, .folder-tree img { width: 18px; height: 18px; object-fit: contain; }
-.folder-tree button:hover, .folder-tree button[aria-pressed="true"], .sidebar-nav button:hover:not(:disabled) { background: rgba(45, 58, 71, 0.16); }
-.sidebar-nav button:disabled { opacity: 0.45; cursor: default; background: none; }
-.workspaces { margin-top: var(--space-4); overflow-y: auto; }
-.workspace { display: block; width: 100%; padding: var(--space-2) 14px; font-family: var(--font-display); }
-.workspace:hover, .workspace[aria-pressed="true"] { background: rgba(45, 58, 71, 0.16); }
-.folder-tree button { padding-block: var(--space-1); font-size: 0.875rem; }
-.settings { display: flex; align-items: center; gap: var(--space-2); margin: auto var(--space-4) 0; }
-.settings img { width: 24px; height: 24px; }
+.sidebar-nav { margin-top: calc(15 * var(--u)); }
+.sidebar-nav button {
+  display: flex; align-items: center; gap: calc(9 * var(--u)); width: 100%;
+  height: calc(33 * var(--u)); margin-bottom: calc(7 * var(--u)); padding-left: calc(14 * var(--u));
+}
+.sidebar-nav img { width: calc(18 * var(--u)); height: calc(18 * var(--u)); object-fit: contain; }
+.sidebar-nav button:hover:not(:disabled), .workspace:hover, .workspace[aria-pressed="true"],
+.folder-tree button:hover, .folder-tree button[aria-pressed="true"] { background: rgba(45, 58, 71, 0.48); color: #fff; }
+.sidebar-nav button:hover:not(:disabled) img, .folder-tree button:hover img, .folder-tree button[aria-pressed="true"] img { filter: invert(1); }
+.sidebar-nav button:disabled { opacity: 0.45; cursor: default; }
+.workspaces { margin-top: calc(9 * var(--u)); overflow-y: auto; }
+.workspace { display: block; width: 100%; padding: calc(6 * var(--u)) calc(14 * var(--u)); font-family: var(--font-display); }
+.folder-tree button { display: flex; align-items: center; gap: calc(4 * var(--u)); width: 100%; height: calc(31 * var(--u)); font-size: calc(14 * var(--u)); }
+.folder-tree img { width: calc(19 * var(--u)); height: calc(19 * var(--u)); object-fit: contain; }
+.settings { display: flex; align-items: center; gap: calc(5 * var(--u)); margin: auto 0 0 calc(16 * var(--u)); }
+.settings img { width: calc(35 * var(--u)); height: calc(35 * var(--u)); }
 
 .home-main {
   position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
-  padding: clamp(var(--space-8), 18vh, 160px) var(--space-6) var(--space-7);
+  padding-top: calc(196 * var(--u));
 }
-.avatar { position: absolute; top: var(--space-4); right: var(--space-5); border-radius: 50%; }
-.greeting { margin: 0 0 var(--space-5); font-family: var(--font-display); font-size: var(--step-3); font-weight: 400; line-height: 1.2; }
+.avatar { position: absolute; top: calc(16 * var(--u)); right: calc(18 * var(--u)); width: calc(36 * var(--u)); height: calc(36 * var(--u)); border-radius: 50%; overflow: hidden; }
+.avatar img { width: 100%; height: 100%; display: block; }
+.greeting { margin: 0 0 calc(32 * var(--u)); font-family: var(--font-display); font-size: calc(48 * var(--u)); font-weight: 400; line-height: calc(35 * var(--u)); }
 .new-project {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
-  width: 100%; max-width: 480px; min-height: 56px; padding: 0 var(--space-5) 0 var(--space-6);
-  border-radius: 999px; background: var(--tint); font-size: var(--step-1);
+  display: flex; align-items: center; justify-content: space-between;
+  width: calc(529 * var(--u)); max-width: calc(100% - 32px); height: calc(65 * var(--u));
+  padding: 0 calc(28 * var(--u)) 0 calc(33 * var(--u)); border-radius: calc(60 * var(--u));
+  background: var(--tint); font-size: calc(31 * var(--u)); color: rgba(41, 41, 41, 0.8);
 }
 .new-project:hover { background: rgba(169, 183, 198, 0.5); }
-.new-project img { width: 20px; height: 20px; }
+.new-project img { width: calc(25 * var(--u)); height: calc(24 * var(--u)); }
 
-.recent { align-self: stretch; max-width: 1040px; margin: var(--space-8) auto 0; width: 100%; }
-.recent-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
-.recent-new { padding: var(--space-1) var(--space-3); border-radius: 999px; background: var(--tint); font-size: 0.875rem; }
-.recent-new:hover { background: rgba(169, 183, 198, 0.5); }
-.recent h2 { margin: 0; font-family: var(--font-display); font-size: var(--step-1); font-weight: 400; line-height: 1.3; }
-.recent-row {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: var(--space-5);
-  list-style: none; margin: 0; padding: 0;
-}
-.recent-card {
-  position: relative; aspect-ratio: 4 / 5; border-radius: 4px;
-  border: 6px solid rgba(168, 181, 138, 0.39); background: rgba(255, 255, 255, 0.83);
+.recent { align-self: stretch; margin-top: calc(127 * var(--u)); padding-left: calc(53 * var(--u)); }
+.recent h2 { margin: 0 0 calc(36 * var(--u)); font-family: var(--font-display); font-size: calc(28 * var(--u)); font-weight: 400; line-height: 1.2; }
+.recent-row { display: flex; gap: calc(37 * var(--u)); list-style: none; margin: 0; padding: 0 calc(53 * var(--u)) calc(24 * var(--u)) 0; overflow-x: auto; }
+.recent-card { flex: 0 0 calc(254 * var(--u)); }
+.recent-page {
+  position: relative; height: calc(319 * var(--u)); border-radius: 4px;
+  border: calc(8 * var(--u)) solid rgba(168, 181, 138, 0.39); background: rgba(255, 255, 255, 0.83);
   transition: border-color 0.15s;
 }
-.recent-card:hover { border-color: rgba(168, 181, 138, 0.7); }
-.recent-open { position: absolute; inset: 0; width: 100%; display: flex; flex-direction: column; }
-.recent-open img, .recent-blank { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #fff; } /* show the whole page, never crop it */
-.recent-name { padding: var(--space-1) var(--space-2); font-size: 0.875rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-top: 1px solid rgba(168, 181, 138, 0.39); }
-.recent-empty { margin: 0; color: var(--midnight-lagoon); }
-.recent-more { position: absolute; top: var(--space-1); right: var(--space-1); display: flex; padding: var(--space-1); border-radius: 4px; background: rgba(255, 255, 255, 0.8); }
-.recent-more img { width: 15px; height: 15px; }
+.recent-card:hover .recent-page { border-color: rgba(168, 181, 138, 0.7); }
+.recent-open { position: absolute; inset: 0; width: 100%; height: 100%; }
+.recent-open img { width: 100%; height: 100%; object-fit: contain; display: block; } /* the whole page, never cropped */
+.recent-more { position: absolute; top: calc(9 * var(--u)); right: calc(7 * var(--u)); display: flex; padding: 2px; border-radius: 4px; }
+.recent-more:hover { background: rgba(169, 183, 198, 0.4); }
+.recent-more img { width: calc(15 * var(--u)); height: calc(15 * var(--u)); }
+.recent-name { display: block; margin-top: calc(8 * var(--u)); font-size: calc(14 * var(--u)); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.recent-empty { margin: 0; font-size: calc(16 * var(--u)); color: var(--midnight-lagoon); }
 
-/* ---------- Sign-in ---------- */
+/* ---------- Sign-in (Figma "MacBook Air - 2") ---------- */
 .signin {
   display: flex; flex-direction: column; align-items: flex-start; min-height: 100vh;
-  padding: clamp(var(--space-7), 15vh, 136px) var(--space-5) var(--space-6) max(var(--space-5), 25vw);
+  padding: calc(136 * var(--u)) var(--space-5) calc(34 * var(--u)) max(var(--space-5), calc(319 * var(--u)));
   background: var(--bg); color: var(--text);
 }
-.signin-welcome { margin: 0; font-size: var(--step-1); line-height: 1.2; }
-.signin .logo { margin: -4px 0 0 -11px; }
-.signin-tagline { margin: 0; line-height: 1.3; }
-.signin-buttons { display: flex; flex-direction: column; gap: var(--space-3); width: 360px; max-width: 100%; margin-top: var(--space-6); }
+.signin-welcome { margin: 0; font-size: calc(20 * var(--u)); line-height: calc(22 * var(--u)); }
+.signin .logo { margin: calc(-6 * var(--u)) 0 0 calc(-13 * var(--u)); }
+.signin-tagline { margin: calc(-2 * var(--u)) 0 0; font-size: calc(16 * var(--u)); line-height: calc(18 * var(--u)); }
+.signin-buttons { display: flex; flex-direction: column; gap: calc(21 * var(--u)); width: calc(414 * var(--u)); max-width: 100%; margin-top: calc(36 * var(--u)); }
 .signin-buttons button {
-  display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 48px; border-radius: 999px;
-  font-family: var(--font-display); font-size: var(--step-1);
+  display: flex; align-items: center; justify-content: center; gap: calc(8 * var(--u)); height: calc(55 * var(--u)); border-radius: calc(40 * var(--u));
+  font-family: var(--font-display); font-size: calc(24 * var(--u));
 }
-.signin-buttons img { width: 20px; height: 20px; }
+.signin-google img { width: calc(30 * var(--u)); height: calc(30 * var(--u)); }
+.signin-microsoft img { width: calc(21 * var(--u)); height: calc(21 * var(--u)); }
 .signin-buttons .signin-google { background: rgba(168, 181, 138, 0.3); }
 .signin-buttons .signin-microsoft { background: var(--tint); }
 .signin-buttons .signin-email { background: rgba(45, 58, 71, 0.3); }
 .signin-buttons button:hover { filter: brightness(0.95); }
-.signin-new { margin: var(--space-5) 0 0 var(--space-2); font-family: var(--font-display); font-size: var(--step--1); }
-.signin-create { margin-left: var(--space-2); font-family: var(--font-display); text-decoration: underline; text-underline-offset: 3px; }
-.signin-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); margin: auto 0 0 var(--space-2); padding-top: var(--space-7); }
-.signin-footer a { font-family: var(--font-display); font-size: var(--step--1); color: var(--midnight-lagoon); text-decoration: none; }
+.signin-new { margin: calc(26 * var(--u)) 0 0 calc(9 * var(--u)); font-family: var(--font-display); font-size: calc(13 * var(--u)); }
+.signin-create { margin-left: calc(9 * var(--u)); font-family: var(--font-display); font-size: calc(16 * var(--u)); text-decoration: underline; text-underline-offset: 3px; }
+.signin-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) calc(24 * var(--u)); margin: auto 0 0 calc(9 * var(--u)); padding-top: var(--space-7); }
+.signin-footer a { font-family: var(--font-display); font-size: calc(11 * var(--u)); color: var(--midnight-lagoon); text-decoration: none; }
 .signin-footer a:hover { text-decoration: underline; }
 
 /* ---------- Whiteboard (editor) ---------- */
@@ -151,7 +165,8 @@ button { font: inherit; color: inherit; }
 .tool[aria-label="Undo"], .tool[aria-label="Redo"] { width: 34px; height: 30px; }
 .tool[aria-label="Pen"] { width: 45px; height: 40px; }
 .tool[aria-label="Eraser"] { width: 47px; height: 41px; }
-.tool:hover:not(:disabled), .tool[aria-pressed="true"] { background: rgba(255, 247, 230, 0.6); }
+.tool[aria-pressed="true"] { box-shadow: 0 3px 0 -1px #000; } /* no fill behind icons, per Figma comment */
+.tool:hover:not(:disabled) img { opacity: 0.7; }
 :where(.whiteboard) button:disabled { opacity: 0.35; cursor: default; }
 .swatch { width: 28px; height: 28px; border-radius: 50%; }
 .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px #000; }
@@ -162,6 +177,11 @@ button { font: inherit; color: inherit; }
 .thickness input::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #000; }
 
 .canvas-panel { flex: 1; min-height: 0; }
+/* The desk the page sits on: drag it (or hold Space) to move the page around */
+.desk { position: relative; width: 100%; height: 100%; overflow: hidden; background: #ebe3d3; cursor: grab; touch-action: none; }
+.desk.panning, .desk.panning * { cursor: grabbing !important; }
+.desk.panning .page { pointer-events: none; } /* while panning, the page can't be drawn on */
+.page { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: #fff; box-shadow: 0 2px 6px rgba(45, 58, 71, 0.12), 0 12px 40px rgba(45, 58, 71, 0.14); }
 .canvas-wrap { position: relative; width: 100%; height: 100%; overflow: hidden; }
 .board-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .canvas-wrap canvas { position: relative; width: 100%; height: 100%; display: block; touch-action: none; cursor: none; } /* the ring below is the cursor */
@@ -169,8 +189,11 @@ button { font: inherit; color: inherit; }
 
 .camera-panel {
   position: absolute; right: 29px; bottom: 29px;
-  width: 301px; height: 234px; padding: 12px 20px; background: var(--tint-strong);
+  width: 326px; height: 251px; padding: 19px 31px; background: var(--tint-strong);
 }
+.camera-close { position: absolute; top: 1px; right: 0; width: 25px; height: 34px; font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: #fffcfc; }
+.camera-close:hover { color: #000; }
+.camera-tab { position: absolute; right: 29px; bottom: 29px; padding: 8px 16px; background: var(--tint-strong); font-family: var(--font-display); font-size: 1rem; }
 .camera-panel h2 { margin: 0; font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; line-height: 1.4; }
 
 /* Status: also add an icon/text change per state, not just color */
@@ -183,8 +206,8 @@ button { font: inherit; color: inherit; }
   .home { flex-direction: column; }
   .sidebar { position: static; width: auto; height: auto; }
   .settings { margin-top: var(--space-4); }
-  .home-main { padding: var(--space-8) var(--space-4) var(--space-7); }
-  .recent-row { grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
+  .home-main { padding-top: var(--space-8); }
+  .recent { padding-left: var(--space-4); }
   .camera-panel { width: 160px; right: var(--space-4); bottom: var(--space-4); }
   .camera-panel h2 { font-size: var(--step-0); }
   .menu, .toolbar { overflow-x: auto; gap: var(--space-4); } /* scrollable rows instead of a wrapped stack */
@@ -206,3 +229,21 @@ button { font: inherit; color: inherit; }
 .ask-buttons .ask-ok { background: var(--midnight-lagoon); color: var(--vanilla-cream); }
 .ask-buttons button:disabled { opacity: 0.4; cursor: default; }
 .ask :is(button, input, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Settings (Figma "MacBook Air - 4") ---------- */
+.settings-dialog {
+  width: min(calc(707 * var(--u)), calc(100% - 32px)); height: min(calc(554 * var(--u)), calc(100% - 32px));
+  padding: calc(42 * var(--u)) calc(46 * var(--u)); border: 0; border-radius: calc(20 * var(--u));
+  background: var(--vanilla-cream); color: #000;
+}
+.settings-dialog::backdrop { background: rgba(0, 0, 0, 0.28); }
+.settings-dialog h2 { margin: 0; font-family: var(--font-display); font-size: calc(32 * var(--u)); font-weight: 400; line-height: 1.4; }
+.settings-account { display: flex; align-items: center; gap: calc(12 * var(--u)); margin: calc(22 * var(--u)) 0 0 calc(18 * var(--u)); }
+.settings-account img { width: calc(60 * var(--u)); height: calc(60 * var(--u)); border-radius: 50%; }
+.settings-account p { margin: 0; font-family: var(--font-display); font-size: calc(18 * var(--u)); line-height: calc(30 * var(--u)); }
+.settings-name { font-weight: 700; }
+.settings-dialog button { display: block; margin: calc(8 * var(--u)) 0 0 calc(18 * var(--u)); padding: 0; border: 0; background: none; font: inherit; font-size: calc(16 * var(--u)); line-height: calc(18 * var(--u)); cursor: pointer; }
+.settings-dialog .settings-logout { margin-top: calc(12 * var(--u)); }
+.settings-logout { color: #902525; }
+.settings-dialog button:hover { text-decoration: underline; }
+.settings-dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

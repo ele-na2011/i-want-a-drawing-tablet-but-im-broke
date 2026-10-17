@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addDoc, addFolder, addProject, allPlaces, docsIn, loadStore, saveStore, updateDoc, type Store } from "./projects.ts";
+import { addDoc, addFolder, addProject, allPlaces, docsIn, loadStore, PAGE, saveStore, toPage, updateDoc, type Store } from "./projects.ts";
 
 const memory = (init: Record<string, string> = {}) => {
   const m = new Map(Object.entries(init));
@@ -59,4 +59,18 @@ test("a full or broken storage is reported, not thrown", () => {
   const full = { setItem: () => { throw new Error("QuotaExceededError"); } };
   assert.equal(saveStore({ projects: [], folders: [], docs: [] }, full), false);
   assert.deepEqual(loadStore({ getItem: () => "{not json" }), { projects: [], folders: [], docs: [] });
+});
+
+test("documents from the old full-screen board keep their shape on the page", () => {
+  const old = {
+    id: "d", name: "Old", projectId: null, folderId: null, background: null, thumbnail: "x", updatedAt: 1,
+    size: { w: 1632, h: 1056 }, // twice as wide as the page, same height
+    strokes: [{ id: "s", color: "#000000", thickness: 4, points: [{ x: 0.5, y: 1, t: 0 }] }],
+  };
+  const d = toPage(old);
+  assert.deepEqual(d.size, PAGE);
+  assert.equal(d.strokes[0].thickness, 2);                // everything is half as big...
+  assert.deepEqual(d.strokes[0].points[0], { x: 0.5, y: 0.5, t: 0 }); // ...so the bottom edge lands halfway down
+  assert.equal(d.thumbnail, null);
+  assert.equal(toPage(d), d); // already a page: untouched
 });

@@ -9,13 +9,13 @@ export async function thumbnail(doc: Page): Promise<string> {
   return (await renderPage(doc, 640)).toDataURL("image/jpeg", 0.85);
 }
 
-// A4-width page (842 pt) rendered at ~300 dpi, so print and zoom stay crisp.
+// US Letter page (612 x 792 pt) rendered at 300 dpi (2550 px wide), so print and zoom stay crisp.
 export async function downloadPdf(doc: Page, name: string) {
-  const page = await renderPage(doc, 3508);
+  const page = await renderPage(doc, 2550);
   const blob = await new Promise<Blob | null>((ok) => page.toBlob(ok, "image/jpeg", 0.92));
   if (!blob) throw new Error("Could not render the page");
   const jpeg = new Uint8Array(await blob.arrayBuffer());
-  const pdf = jpegToPdf(jpeg, page.width, page.height, 842, (842 * page.height) / page.width);
+  const pdf = jpegToPdf(jpeg, page.width, page.height, 612, (612 * page.height) / page.width);
   const url = URL.createObjectURL(new Blob([pdf as BlobPart], { type: "application/pdf" }));
   const a = document.createElement("a");
   a.href = url;

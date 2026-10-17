@@ -5,15 +5,17 @@ import {
   extendStroke, finishStroke, redo, undo,
 } from "./lib/strokes";
 import {
-  addDoc, addFolder, addProject, allPlaces, loadStore, removeDoc, saveStore, updateDoc,
+  addDoc, addFolder, addProject, allPlaces, loadStore, PAGE, removeDoc, saveStore, updateDoc,
   type Place, type Store,
 } from "./lib/projects";
 import { downloadPdf, readImage, thumbnail } from "./lib/canvasImage";
 import DrawingCanvas from "./components/DrawingCanvas";
+import PageView from "./components/PageView";
 import Toolbar, { COLORS, type Tool } from "./components/Toolbar";
 import SignIn from "./components/SignIn";
 import Home from "./components/Home";
 import AskDialog, { type Ask } from "./components/AskDialog";
+import SettingsDialog from "./components/SettingsDialog";
 import "./styles.css";
 
 const placeKey = (p: Place) => `${p.projectId ?? ""}|${p.folderId ?? ""}`;
@@ -38,7 +40,8 @@ export default function App() {
   const [color, setColor] = useState(COLORS[0].value);
   const [penOn, setPenOn] = useState(true);
   const [ask, setAsk] = useState<Ask | null>(null); // the one open dialog, if any
-  const board = useRef<HTMLElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(true);
   const importInput = useRef<HTMLInputElement>(null);
 
   const doc = store.docs.find((d) => d.id === docId);
@@ -77,12 +80,8 @@ export default function App() {
     if (!saveStore(next)) tell("Couldn't save", "This browser's storage is full or blocked. Export a PDF to keep your work.");
   };
 
-  // The board's current content, sized as it is on screen (previews and PDF keep these proportions).
-  const page = () => {
-    const c = board.current?.querySelector("canvas");
-    const size = c && c.clientWidth ? { w: c.clientWidth, h: c.clientHeight } : doc?.size ?? { w: 1280, h: 720 };
-    return { strokes: drawing.strokes, background, size };
-  };
+  // The document as it stands now, for saving, previews and PDF.
+  const page = () => ({ strokes: drawing.strokes, background, size: { ...PAGE } });
 
   const handleSave = async () => {
     if (!docId) return;
@@ -189,9 +188,15 @@ export default function App() {
         <Home
           store={store} place={place} onPlace={setPlace}
           onNewDoc={newDoc} onNewProject={newProject} onNewFolder={newFolder}
-          onOpenDoc={openDoc} onDocMenu={docMenu}
+          onOpenDoc={openDoc} onDocMenu={docMenu} onSettings={() => setSettingsOpen(true)}
         />
         {dialog}
+        {settingsOpen && (
+          <SettingsDialog
+            onClose={() => setSettingsOpen(false)}
+            onLogOut={() => { setSettingsOpen(false); setView("signin"); }}
+          />
+        )}
       </>
     );
   }
@@ -222,21 +227,28 @@ export default function App() {
         />
       </header>
 
-      {/* ---------- CANVAS: fills the page ---------- */}
-      <main className="canvas-panel" ref={board}>
-        <DrawingCanvas
-          strokes={allStrokes(drawing)} onSample={onSample} background={background}
-          cursorColor={tool === "eraser" ? "rgba(0, 0, 0, 0.56)" : color}
-          cursorSize={Math.max(8, tool === "eraser" ? thickness * 4 : thickness)}
-        />
+      {/* ---------- PAGE: one sheet on a desk you can drag around ---------- */}
+      <main className="canvas-panel">
+        <PageView>
+          <DrawingCanvas
+            strokes={allStrokes(drawing)} onSample={onSample} background={background}
+            cursorColor={tool === "eraser" ? "rgba(0, 0, 0, 0.56)" : color}
+            cursorSize={Math.max(8, tool === "eraser" ? thickness * 4 : thickness)}
+          />
+        </PageView>
       </main>
 
       {/* ---------- CAMERA: floating preview + calibration ---------- */}
-      <section className="camera-panel" aria-label="Camera view">
-        <h2>Camera view</h2>
-        {/* TODO (Person 1): <CameraView /> goes here */}
-        {/* TODO (Person 3): <CalibrationOverlay /> goes on top of it */}
-      </section>
+      {cameraOpen ? (
+        <section className="camera-panel" aria-label="Camera view">
+          <h2>Camera view</h2>
+          <button className="camera-close" aria-label="Hide camera view" onClick={() => setCameraOpen(false)}>x</button>
+          {/* TODO (Person 1): <CameraView /> goes here */}
+          {/* TODO (Person 3): <CalibrationOverlay /> goes on top of it */}
+        </section>
+      ) : (
+        <button className="camera-tab" onClick={() => setCameraOpen(true)}>Camera view</button>
+      )}
       {dialog}
     </div>
   );

@@ -8,6 +8,7 @@ import settings from "../assets/settings.png";
 import avatar from "../assets/avatar.png";
 import more from "../assets/more.png";
 import { childFolders, docsIn, type Place, type Store } from "../lib/projects";
+import { USER } from "./SettingsDialog";
 
 interface Props {
   store: Store;
@@ -18,9 +19,10 @@ interface Props {
   onNewFolder: () => void;
   onOpenDoc: (id: string) => void;
   onDocMenu: (id: string) => void;
+  onSettings: () => void;
 }
 
-export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onOpenDoc, onDocMenu }: Props) {
+export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onOpenDoc, onDocMenu, onSettings }: Props) {
   const docs = docsIn(store, place);
   const heading =
     store.folders.find((f) => f.id === place.folderId)?.name ??
@@ -79,38 +81,43 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
           ))}
         </div>
 
-        <button className="settings">
+        <button className="settings" onClick={onSettings}>
           <img src={settings} alt="" />
           Settings
         </button>
       </nav>
 
       <main className="home-main">
-        <img className="avatar" src={avatar} alt="Your profile" width={36} height={36} />
-        <h1 className="greeting">Hey, Elena!</h1>
+        <button className="avatar" onClick={onSettings} aria-label="Account settings">
+          <img src={avatar} alt="" />
+        </button>
+        <h1 className="greeting">Hey, {USER.first}!</h1>
         <button className="new-project" onClick={onNewProject}>
           Start a new project
           <img src={plus} alt="" />
         </button>
 
         <section className="recent">
-          <div className="recent-head">
-            <h2>{heading}</h2>
-            <button className="recent-new" onClick={onNewDoc}>+ New document</button>
-          </div>
+          <h2>{heading}</h2>
           {docs.length === 0 ? (
-            <p className="recent-empty">No documents here yet.</p>
+            <p className="recent-empty">
+              {store.docs.length === 0
+                ? "There are currently no documents. Create a project and add a new document."
+                : "No documents here yet."}
+            </p>
           ) : (
             <ul className="recent-row">
               {docs.map((d) => (
                 <li key={d.id} className="recent-card">
-                  <button className="recent-open" onClick={() => onOpenDoc(d.id)}>
-                    {d.thumbnail ? <img src={d.thumbnail} alt="" /> : <span className="recent-blank" />}
-                    <span className="recent-name">{d.name}</span>
-                  </button>
-                  <button className="recent-more" aria-label={`Options for ${d.name}`} onClick={() => onDocMenu(d.id)}>
-                    <img src={more} alt="" />
-                  </button>
+                  <div className="recent-page">
+                    <button className="recent-open" onClick={() => onOpenDoc(d.id)} aria-label={`Open ${d.name}`}>
+                      {d.thumbnail && <img src={d.thumbnail} alt="" />}
+                    </button>
+                    <button className="recent-more" aria-label={`Options for ${d.name}`} onClick={() => onDocMenu(d.id)}>
+                      <img src={more} alt="" />
+                    </button>
+                  </div>
+                  <span className="recent-name">{d.name}</span>
                 </li>
               ))}
             </ul>
