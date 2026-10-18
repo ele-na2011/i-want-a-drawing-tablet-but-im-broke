@@ -41,3 +41,18 @@ export function pickLed(
     score,
   };
 }
+
+// Side (bottom) camera: where the LED sits in the frame with the tip on the paper, and lifted just off it.
+export interface ZCalibration { touchY: number; hoverY: number }
+
+// Pen height from the side camera: 0 with the tip on the paper, 1 at the lifted reference.
+export function zLevel(y: number, cal: ZCalibration): number {
+  return (y - cal.touchY) / (cal.hoverY - cal.touchY);
+}
+
+// Two thresholds so detector jitter near the paper doesn't break a stroke into dashes.
+export const DOWN_BELOW = 0.35;
+export const UP_ABOVE = 0.55;
+export function nextPenDown(z: number, wasDown: boolean): boolean {
+  return wasDown ? z < UP_ABOVE : z < DOWN_BELOW;
+}

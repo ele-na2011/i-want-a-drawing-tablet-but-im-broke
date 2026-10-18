@@ -80,12 +80,15 @@ export function useCamera() {
       await refreshDevices();
       setStatus("ready");
     } catch (e) {
+      console.error("Camera failed to open:", e);
       const name = e instanceof DOMException ? e.name : "";
       setError(name === "NotAllowedError"
         ? "Camera permission was denied. Allow it in the browser's site settings."
         : name === "NotFoundError"
           ? "No webcam was found. Connect the Logitech camera and try again."
-          : "Could not open this camera. Check that it is connected and not in use.");
+          : name === "NotReadableError"
+            ? "Another app is using this camera (a Python script, Zoom, Teams, the Windows Camera app, OBS). Close it and try again."
+            : `Could not open this camera (${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}).`);
       setStatus("error");
     }
   }, [refreshDevices]);

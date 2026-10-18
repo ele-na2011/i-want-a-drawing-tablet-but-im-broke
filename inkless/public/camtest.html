@@ -1,0 +1,15 @@
+<!doctype html><pre id=o>running…</pre><script>
+const log = (s) => (o.textContent += "\n" + s);
+(async () => {
+  try { (await navigator.mediaDevices.getUserMedia({ video: true })).getTracks().forEach(t => t.stop()); log("plain video:true OK"); }
+  catch (e) { log("plain video:true FAILED " + e.name + ": " + e.message); }
+  const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+  for (const c of cams) {
+    for (const [label, v] of [["app constraints", { deviceId: { exact: c.deviceId }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30, max: 60 } }], ["deviceId only", { deviceId: { exact: c.deviceId } }]]) {
+      try { const s = await navigator.mediaDevices.getUserMedia({ video: v }); log(`${c.label} [${label}] OK ${JSON.stringify(s.getVideoTracks()[0].getSettings())}`); s.getTracks().forEach(t => t.stop()); }
+      catch (e) { log(`${c.label} [${label}] FAILED ${e.name}: ${e.message} ${e.constraint ?? ""}`); }
+    }
+  }
+  log("done");
+})();
+</script>

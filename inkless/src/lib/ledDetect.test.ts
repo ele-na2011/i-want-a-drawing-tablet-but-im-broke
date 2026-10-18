@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { letterbox, pickLed } from "./ledDetect.ts";
+import { letterbox, nextPenDown, pickLed, zLevel } from "./ledDetect.ts";
 
 // Model output for n candidate boxes, laid out as [cx..., cy..., w..., h..., score...].
 const output = (boxes: [number, number, number][], n = 4) => {
@@ -22,4 +22,17 @@ test("picks the most confident box and maps it back to the frame", () => {
 
 test("nothing confident enough means no LED", () => {
   assert.equal(pickLed(output([[320, 320, 0.1]]), letterbox(640, 480), { width: 640, height: 480 }), null);
+});
+
+test("z is 0 on the paper and 1 at the lifted reference, whichever way the camera is mounted", () => {
+  assert.equal(zLevel(0.8, { touchY: 0.8, hoverY: 0.6 }) + 0, 0); // +0 turns -0 into 0
+  assert.equal(zLevel(0.6, { touchY: 0.8, hoverY: 0.6 }), 1);
+  assert.equal(zLevel(0.5, { touchY: 0.4, hoverY: 0.6 }), 0.5);
+});
+
+test("pen down and up use different thresholds", () => {
+  assert.equal(nextPenDown(0.45, false), false); // not low enough to start a stroke
+  assert.equal(nextPenDown(0.45, true), true);   // not high enough to end one
+  assert.equal(nextPenDown(0.2, false), true);
+  assert.equal(nextPenDown(0.7, true), false);
 });
