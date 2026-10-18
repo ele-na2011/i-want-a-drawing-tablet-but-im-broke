@@ -9,6 +9,9 @@ import {
   type Place, type Store,
 } from "./lib/projects";
 import { downloadPdf, readImage, thumbnail } from "./lib/canvasImage";
+import { useAuth } from "./lib/AuthContext";
+import { supabase } from "./lib/supabase";
+import { saveToDrive } from "./lib/drive";
 import DrawingCanvas from "./components/DrawingCanvas";
 import PageView from "./components/PageView";
 import Toolbar, { COLORS, type Tool } from "./components/Toolbar";
@@ -25,7 +28,8 @@ const keyPlace = (k: string): Place => {
 };
 
 export default function App() {
-  const [view, setView] = useState<"signin" | "home" | "editor">("signin");
+  const { session, loading, googleToken } = useAuth();
+  const [view, setView] = useState<"home" | "editor">("home");
   const [store, setStore] = useState<Store>(() => loadStore());
   const storeRef = useRef(store); // latest store for code that runs after an await
   storeRef.current = store;
@@ -98,6 +102,34 @@ export default function App() {
       await downloadPdf(page(), doc?.name ?? "drawing");
     } catch {
       tell("Couldn't export", "The page couldn't be turned into a PDF. Try again, or save and reload.");
+    }
+  };
+
+  // Uploads the current canvas as a PNG into the user's Google Drive.
+  const handleDrive = async () => {
+    const canvas = document.querySelector<HTMLCanvasElement>(".canvas-panel canvas");
+    if (!canvas) {
+      tell("Nothing to save", "Open a document first.");
+      return;
+    }
+    if (!googleToken) {
+      tell("Reconnect Google", "Your Google connection has expired. Log out and sign in with Google again.");
+      return;
+    }
+    try {
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("no image"))), "image/png")
+      );
+      const name = `${doc?.name ?? "Inkless drawing"}.png`;
+      await saveToDrive(googleToken, name, blob);
+      tell("Saved to Google Drive", `"${name}" is now in your Google Drive.`);
+    } catch (e) {
+      if (e instanceof Error && e.message === "reauth") {
+        tell("Reconnect Google", "Your Google connection has expired. Log out and sign in with Google again.");
+      } else {
+        console.error(e);
+        tell("Couldn't save to Drive", "Something went wrong. Check the browser console for details.");
+      }
     }
   };
 
@@ -181,7 +213,8 @@ export default function App() {
 
   const dialog = ask && <AskDialog key={ask.title + ask.confirm} ask={ask} onClose={() => setAsk(null)} />;
 
-  if (view === "signin") return <SignIn onSignIn={() => setView("home")} />;
+  if (loading) return null;
+  if (!session) return <SignIn />;
   if (view === "home") {
     return (
       <>
@@ -194,7 +227,7 @@ export default function App() {
         {settingsOpen && (
           <SettingsDialog
             onClose={() => setSettingsOpen(false)}
-            onLogOut={() => { setSettingsOpen(false); setView("signin"); }}
+            onLogOut={async () => { setSettingsOpen(false); await supabase.auth.signOut(); setView("home"); }}
           />
         )}
       </>
@@ -209,6 +242,7 @@ export default function App() {
           <button className="menu-back" onClick={goHome} aria-label="Back to dashboard" title="Back to dashboard">‹</button>
           <button onClick={handleSave}>{justSaved ? "Saved" : "Save"}</button>
           <button onClick={handleExport}>Export</button>
+          <button onClick={handleDrive}>Save to Drive</button>
           <button onClick={() => importInput.current?.click()}>Import</button>
           <input
             ref={importInput} type="file" accept="image/*" hidden
