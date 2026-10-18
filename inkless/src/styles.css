@@ -135,8 +135,7 @@ button { font: inherit; color: inherit; }
 .recent h2 { margin: 0 0 calc(24 * var(--u)); font-family: var(--font-display); font-size: calc(28 * var(--u)); font-weight: 400; line-height: calc(57 * var(--u)); }
 /* No visible scrollbar (Figma lets the 4th card run off the edge); still scrolls with shift+wheel, touch and Tab.
    No bottom padding, so cards + names end inside an 832px window and the page never scrolls. */
-.recent-row { display: flex; gap: calc(37 * var(--u)); list-style: none; margin: 0; padding: 0 calc(53 * var(--u)) 0 0; overflow-x: auto; scrollbar-width: none; }
-.recent-card { flex: 0 0 calc(254 * var(--u)); }
+.recent-row { display: flex; flex-wrap: wrap; gap: calc(40 * var(--u)) calc(37 * var(--u)); list-style: none; margin: 0; padding: 0 calc(53 * var(--u)) calc(80 * var(--u)) 0; }
 .recent-page {
   position: relative; height: calc(319 * var(--u)); border-radius: 4px;
   border: calc(8 * var(--u)) solid rgba(168, 181, 138, 0.39); background: rgba(255, 255, 255, 0.83);
@@ -149,6 +148,7 @@ button { font: inherit; color: inherit; }
 .recent-more:hover { background: rgba(169, 183, 198, 0.4); }
 .recent-more img { width: calc(15 * var(--u)); height: calc(15 * var(--u)); }
 .recent-name { display: block; margin-top: calc(8 * var(--u)); font-size: calc(14 * var(--u)); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.recent-edited { display: block; margin-top: calc(2 * var(--u)); font-size: calc(12 * var(--u)); color: rgba(45, 58, 71, 0.7); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .recent-empty { margin: 0; font-size: calc(16 * var(--u)); color: var(--midnight-lagoon); }
 
 /* ---------- Sign-in (Figma "MacBook Air - 2") ---------- */
@@ -229,6 +229,7 @@ button { font: inherit; color: inherit; }
 .camera-panel {
   position: absolute; right: 29px; bottom: 29px;
   width: 326px; min-height: 251px; padding: 19px 20px; background: var(--tint-strong);
+  max-height: calc(100vh - 58px); overflow-y: auto; /* four steps can outgrow short screens */
 }
 .hub-calibration-panel { z-index: 3; }
 .camera-close { position: absolute; top: 3px; right: 8px; width: 25px; height: 34px; font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: #fffcfc; }
@@ -244,22 +245,25 @@ button { font: inherit; color: inherit; }
 .camera-secondary-feed[hidden] { display: none; }
 .calibration-point { position: absolute; width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; background: var(--accent); transform: translate(-50%, -50%); box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35); }
 .led-marker { position: absolute; width: 22px; height: 22px; border: 3px solid #39ff6a; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); pointer-events: none; }
-.calibration-hint { position: absolute; inset: auto 8px 8px; margin: 0; padding: 3px 6px; border-radius: 4px; background: rgba(0, 0, 0, 0.65); color: #fff; font-size: 0.72rem; text-align: center; }
-.camera-controls { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: 0.75rem; }
-.camera-count { font-size: 0.68rem; color: var(--text); }
-.camera-controls button { padding: 4px 8px; border-radius: 4px; background: var(--bg); }
+.calibration-next { display: grid; gap: 4px; justify-items: start; }
+.calibration-next p { margin: 0; font-size: 0.8rem; font-weight: 600; }
+.calibration-step { display: grid; gap: 6px; padding: 8px 10px; border-left: 3px solid var(--border); border-radius: 5px; background: rgba(255, 255, 255, 0.5); }
+.calibration-step[hidden] { display: none; }
+.calibration-step[data-done="true"] { border-left-color: var(--accent); }
+.calibration-step h3 { display: flex; justify-content: space-between; margin: 0; font-size: 0.8rem; }
+.calibration-step h3 span { font-weight: 400; opacity: 0.75; }
+.calibration-step[data-done="true"] h3::after { content: "✓"; margin-left: 6px; }
+.step-action { width: 100%; padding: 6px 8px; border-radius: 4px; background: var(--accent); color: #fff; font-size: 0.75rem; }
+.step-action.secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+.step-action:disabled { opacity: 0.5; cursor: not-allowed; }
 .camera-error { margin: 0; color: #8a2020; font-size: 0.7rem; }
-.camera-select { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 5px; font-size: 0.7rem; }
+.camera-select { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 5px; font-size: 0.7rem; }
 .camera-select select, .camera-select button { min-width: 0; padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); font: inherit; }
-.finger-toggle { width: 100%; padding: 5px 8px; border-radius: 4px; background: var(--accent); color: #fff; font-size: 0.75rem; }
-.finger-toggle[aria-pressed="true"] { background: #4a6578; }
 .tracking-message { margin: 0; font-size: 0.7rem; }
 .tracking-mode { display: grid; gap: 4px; font-size: 0.7rem; }
 .tracking-mode > div { display: flex; gap: 5px; }
 .tracking-mode button { flex: 1; padding: 5px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); font: inherit; }
 .tracking-mode button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-.sensor-card { display: grid; gap: 1px; padding: 6px 8px; border-radius: 5px; background: rgba(255, 255, 255, 0.5); font-size: 0.72rem; }
-.sensor-card small { opacity: 0.7; font-size: 0.65rem; }
 
 /* Status: also add an icon/text change per state, not just color */
 .status { white-space: nowrap; padding: var(--space-1) var(--space-3); border: 1px solid var(--border); border-radius: 999px; font-size: 0.875rem; background: var(--bg); }

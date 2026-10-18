@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { findHomography, type CalibrationPoint, type Homography } from "../lib/homography";
 import { previewToVideoPoint, videoToPreviewPoint } from "../lib/preview";
 import StatusBar from "./StatusBar";
@@ -18,7 +18,9 @@ interface Props {
   cameras: { deviceId: string; label: string }[];
   selectedCamera: string;
   onSelectCamera: (deviceId: string) => void;
-  onStartCamera: (deviceId?: string) => void;
+  selectedSecondaryCamera: string;
+  onSelectSecondaryCamera: (deviceId: string) => void;
+  onStartCamera: (deviceId?: string, secondaryDeviceId?: string) => void;
   tracking: boolean;
   trackerStatus: HandTrackingStatus | LedTrackingStatus; // of the tracker trackingMode picks
   trackerError: string | null;
@@ -30,6 +32,7 @@ interface Props {
   sideLedPoint: CalibrationPoint | null; // same, in the bottom camera
   penHeight: number | null; // 0 on the paper, 1 at the lifted reference
   zCalibrated: boolean;
+  onPage: boolean; // the tracked tip maps inside the page
   onZCalibrated: (calibration: ZCalibration) => void;
   ledThreshold: number;
   onLedThreshold: (threshold: number) => void;
@@ -45,26 +48,48 @@ interface Props {
 const destination: CalibrationPoint[] = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 const labels = ["top-left", "top-right", "bottom-right", "bottom-left"];
 
-export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode, onVideoMount, ledPoint, sideLedPoint, penHeight, zCalibrated, onZCalibrated, ledThreshold, onLedThreshold, ledMode, onLedMode, ledFps, automaticSurface, onAutomaticSurface, onDrawPress, onDrawRelease }: Props) {
-  const targetName = trackingMode === "pen" ? "LED" : "Index fingertip";
-  const [xyError, setXyError] = useState<string | null>(null);
+export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, selectedSecondaryCamera, onSelectSecondaryCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode, onVideoMount, ledPoint, sideLedPoint, penHeight, zCalibrated, onPage, onZCalibrated, ledThreshold: _ledThreshold, onLedThreshold: _onLedThreshold, ledMode: _ledMode, onLedMode: _onLedMode, ledFps: _ledFps, automaticSurface: _automaticSurface, onAutomaticSurface: _onAutomaticSurface, onDrawPress: _onDrawPress, onDrawRelease: _onDrawRelease }: Props): import("react").JSX.Element {
+  const [, setXyError] = useState<string | null>(null);
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([]);
   const [touchY, setTouchY] = useState<number | null>(null);
   const [zError, setZError] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const sidePreviewRef = useRef<HTMLDivElement>(null);
+  const pickerId = useId(); // this overlay can be mounted twice (side panel + calibration dialog)
   useEffect(onVideoMount, [onVideoMount]);
+  const [redoingCorners, setRedoingCorners] = useState(false);
+  const pen = trackingMode === "pen";
+  const camerasOn = cameraStatus === "ready";
+  // The other overlay (home vs editor) may have set the corners, so the shared homography counts too.
+  const cornersDone = points.length === 4 || (calibrated && !redoingCorners);
   const status: TrackingStatus = tracking && trackerStatus === "ready" && calibrated
     ? "tracking"
     : tracking && (trackerStatus === "hand-not-found" || trackerStatus === "led-not-found")
       ? trackerStatus
       : calibrated
     ? "tracking"
-    : cameraStatus === "ready"
+    : camerasOn
       ? "calibrating"
       : "camera-off";
-
+  // The one thing still stopping you from drawing, so nobody has to guess.
+  const nextStep = !camerasOn
+    ? "Turn on the cameras."
+    : !tracking
+      ? `Press ${pen ? "Start pen tracking" : "Start finger tracking"}.`
+      : trackerStatus === "loading"
+        ? "Loading the tracking model..."
+        : !cornersDone
+          ? pen ? `Put the pen tip on the paper's ${labels[points.length]} corner and press Capture.` : `Tap the paper's ${labels[points.length]} corner in the preview.`
+          : pen && activeCameraCount < 2
+            ? "Connect the webcam (Z) so the app can tell when the pen touches the paper."
+            : pen && !zCalibrated
+              ? "Set the pen height: tip on the paper, then lifted."
+              : pen && !ledPoint
+                ? "Camera 1 can't see the pen LED."
+                : pen && !onPage
+                  ? "The pen is off the page. Move it onto the paper, or redo the corners."
+                  : "Ready! Touch the paper to draw.";
 
   const setLifted = (hoverY: number) => {
     // Too close and every bit of detector jitter flips the pen up and down.
@@ -82,6 +107,7 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
     setXyError(null);
     setPoints([]);
     setCalibrationPoints([]);
+    setRedoingCorners(true);
   };
   const preview = previewRef.current;
   const video = videoRef.current;
@@ -91,12 +117,7 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
 
   // previewPoint is where the corner shows on the preview, videoPoint where it is in the raw frame.
   const addCorner = (previewPoint: CalibrationPoint, videoPoint: CalibrationPoint) => {
-    if (cameraStatus !== "ready" || points.length >= 4) return;
-    if (![previewPoint.x, previewPoint.y, videoPoint.x, videoPoint.y].every(Number.isFinite)) return;
-    if (calibrationPoints.some(p => Math.hypot(p.x - videoPoint.x, p.y - videoPoint.y) < 0.04)) {
-      setXyError("This corner is too close to an earlier one. Move the fingertip or LED to the next corner before capturing.");
-      return;
-    }
+    if (!camerasOn || cornersDone) return;
     const next = [...points, previewPoint];
     const nextCalibration = [...calibrationPoints, videoPoint];
     if (next.length === 4) {
@@ -117,6 +138,10 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
     setXyError(null);
     setPoints(next);
     setCalibrationPoints(nextCalibration);
+    if (next.length === 4) {
+      onCalibrated(findHomography(nextCalibration, destination));
+      setRedoingCorners(false);
+    }
   };
 
   const sidePreview = sidePreviewRef.current;
@@ -143,112 +168,87 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
 
   return (
     <div className="camera-content">
-      {xyError && <p className="camera-error" role="alert">{xyError}</p>}
-      {trackingMode === "pen" && <div className="tracking-mode">
-        <label>LED detector <select value={ledMode} onChange={e => onLedMode(e.target.value as "green" | "bright")}>
-          <option value="green">Green LED</option>
-          <option value="bright">Bright / white LED core</option>
-        </select></label>
-        <label>Brightness cutoff: {ledThreshold}
-          <input type="range" min="60" max="250" value={ledThreshold} onChange={e => onLedThreshold(Number(e.target.value))} />
-        </label>
-
-        <small>A green square marks a candidate, not a guarantee it is your LED. Move the pen and check the square follows it.</small>
-      </div>}
-      <small role="status">{ledFps} processed FPS · {ledPoint ? `${targetName} x=${ledPoint.x.toFixed(3)}, y=${ledPoint.y.toFixed(3)}` : `${targetName} not detected`}</small>
-      <p className="tracking-message">Surface writing only. Point the top camera down at the desk so your entire writing area is visible.</p>
-      <div className="camera-preview" ref={previewRef} onPointerDown={capture} role="application" aria-label="Camera calibration surface">
-        <video className="camera-video-mirrored" ref={videoRef} muted playsInline />
-        {points.map((point, i) => <span className="calibration-point" key={`${point.x}-${point.y}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }} aria-label={labels[i]} />)}
-        {marker && <span className="led-marker" style={{ left: `${marker.x * 100}%`, top: `${marker.y * 100}%` }} aria-label={targetName}>{targetName}</span>}
-        {cameraStatus === "ready" && points.length < 4 && (
-          <p className="calibration-hint">
-            {tracking
-              ? `Place your ${trackingMode === "pen" ? "pen tip" : "index fingertip"} on the surface at the preview's ${labels[points.length]} corner, then press Capture corner`
-              : `Tap ${labels[points.length]} corner`}
-          </p>
-        )}
-      </div>
-      {/* The bottom camera gets its own box, so it never covers a corner of the main preview. */}
-      <div className="camera-secondary-feed" ref={sidePreviewRef} hidden={activeCameraCount < 2}>
-        <video ref={secondaryVideoRef} muted playsInline aria-label="Bottom camera feed" />
-        {sideMarker && <span className="led-marker" style={{ left: `${sideMarker.x * 100}%`, top: `${sideMarker.y * 100}%` }} aria-label={`${targetName}, side camera`}>{targetName}</span>}
-      </div>
-      {tracking && points.length < 4 && (
-        <button type="button" disabled={!marker} onClick={captureLed}>
-          {marker ? `Capture ${labels[points.length]} corner` : `Capture corner (${targetName} not seen)`}
-        </button>
-      )}
-      <div className="camera-controls">
+      <div className="calibration-next">
         <StatusBar status={status} />
-        <span className="camera-count" aria-label={`${activeCameraCount} of 2 cameras active`}>
-          Two-camera setup: {activeCameraCount}/2 active
-        </span>
-        {cameraError && <p className="camera-error">{cameraError}</p>}
-        {cameraStatus !== "ready" && <button onClick={() => onStartCamera(selectedCamera || undefined)}>{cameraStatus === "requesting" ? "Opening camera..." : "Enable camera"}</button>}
-        {cameraStatus === "ready" && <button onClick={reset}>{points.length === 4 ? "Recalibrate" : "Calibrate workspace"}</button>}
+        <p>{nextStep}</p>
       </div>
-      {cameras.length > 0 && (
-        <label className="camera-select">
-          Webcam
-          <select value={selectedCamera} onChange={(event) => onSelectCamera(event.target.value)}>
-            {cameras.map((camera) => <option value={camera.deviceId} key={camera.deviceId}>{camera.label}</option>)}
-          </select>
-          <button type="button" onClick={() => onStartCamera(selectedCamera)}>Use selected</button>
-        </label>
-      )}
-      <div className="tracking-mode" aria-label="Tracking method">
-        <strong>Tracking method</strong>
-        <div>
-          <button type="button" aria-pressed={trackingMode === "pen"} onClick={() => { onTrackingMode("pen"); onTracking(true); }}>
-            Pen + LED
-          </button>
-          <button type="button" aria-pressed={trackingMode === "finger"} onClick={() => { onTrackingMode("finger"); onTracking(true); }}>
-            Index finger on surface
-          </button>
-        </div>
-      </div>
-      {!calibrated && <p className="tracking-message">Start tracking first. A green square should follow your {targetName.toLowerCase()} before you capture any corners. Capturing corners never draws.</p>}
-      {(cameraStatus === "ready") && (
-        <button className="finger-toggle" type="button" aria-pressed={tracking} onClick={() => onTracking(!tracking)}>
-          {trackingMode === "pen"
-            ? tracking ? "Stop pen tracking" : "Track pen LED"
-            : tracking ? "Stop finger tracking" : "Track index fingertip"}
-        </button>
-      )}
-      {tracking && activeCameraCount === 2 && (
-        <div className="tracking-mode" aria-label="Pen height calibration">
-          <strong>Surface contact (side camera){zCalibrated ? " · calibrated" : ""}</strong>
-          {!sideLedPoint && <p className="tracking-message">The side camera cannot see the target. Point it across the surface at fingertip / pen-tip height.</p>}
-          <div>
-            <button type="button" disabled={!sideLedPoint} onClick={() => { setTouchY(sideLedPoint!.y); setZError(null); }}>
-              1. Tip touching surface{touchY !== null ? " ✓" : ""}
-            </button>
-            <button type="button" disabled={!sideLedPoint || touchY === null} onClick={() => setLifted(sideLedPoint!.y)}>
-              2. Tip lifted
-            </button>
+
+      <section className="calibration-step" data-done={camerasOn && (!pen || activeCameraCount === 2)}>
+        <h3>1. Cameras <span>{activeCameraCount}/2 on</span></h3>
+        {cameras.length > 0 && (
+          <div className="camera-select">
+            <label htmlFor={`${pickerId}-xy`}>Camera 1 (X/Y)</label>
+            <select id={`${pickerId}-xy`} value={selectedCamera} onChange={(event) => onSelectCamera(event.target.value)}>
+              {cameras.map((camera) => <option value={camera.deviceId} key={camera.deviceId}>{camera.label}</option>)}
+            </select>
+            <label htmlFor={`${pickerId}-z`}>Webcam (Z)</label>
+            <select id={`${pickerId}-z`} value={selectedSecondaryCamera} onChange={(event) => onSelectSecondaryCamera(event.target.value)}>
+              <option value="">Any other camera</option>
+              {cameras.filter((camera) => camera.deviceId !== selectedCamera).map((camera) => <option value={camera.deviceId} key={camera.deviceId}>{camera.label}</option>)}
+            </select>
           </div>
-          {zError && <p className="camera-error">{zError}</p>}
-          {!zCalibrated && <p className="tracking-message">Required for automatic surface mode. Manual Hold to draw works without this calibration.</p>}
-          {penHeight !== null && <small>Height {penHeight.toFixed(2)} · {penHeight < DOWN_BELOW ? "near surface" : "lifted"}</small>}
+        )}
+        {/* Camera 1 sets the corners, the webcam sets pen height: after swapping them, redo both. */}
+        <button className="step-action" type="button" disabled={cameraStatus === "requesting"} onClick={() => onStartCamera(selectedCamera || undefined, selectedSecondaryCamera || undefined)}>
+          {cameraStatus === "requesting" ? "Opening cameras..." : camerasOn ? "Use these cameras" : "Turn on cameras"}
+        </button>
+        {cameraError && <p className="camera-error">{cameraError}</p>}
+      </section>
+
+      <section className="calibration-step" data-done={tracking && trackerStatus === "ready"}>
+        <h3>2. Track</h3>
+        <div className="tracking-mode" role="group" aria-label="Tracking method">
+          <button type="button" aria-pressed={pen} onClick={() => { onTrackingMode("pen"); onTracking(false); }}>Pen + green LED</button>
+          <button type="button" aria-pressed={!pen} onClick={() => { onTrackingMode("finger"); onTracking(false); }}>Index finger</button>
         </div>
-      )}
-      {trackerStatus === "loading" && <p className="tracking-message">Starting {trackingMode === "pen" ? "LED detector" : "hand model"}...</p>}
-      {trackerError && <p className="camera-error">{trackerError}</p>}
-      <div className="sensor-card" aria-label="Surface drawing controls">
-        <strong>Surface drawing</strong>
-        <label><input type="checkbox" checked={automaticSurface} disabled={!automaticSurface && (activeCameraCount < 2 || !zCalibrated)}
-          onChange={e => onAutomaticSurface(e.target.checked)} /> Automatic surface estimate (experimental)</label>
-        {!automaticSurface && <>
-          <small>Move along the desk while holding Space or this button. Release before lifting or repositioning. Merely detecting a finger / LED never draws.</small>
-          <button type="button" disabled={!calibrated || !tracking} style={{ touchAction: "none" }}
-            onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); onDrawPress(); }}
-            onPointerUp={onDrawRelease} onPointerCancel={onDrawRelease} onLostPointerCapture={onDrawRelease}
-            onKeyDown={e => { if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); onDrawPress(); } }}
-            onKeyUp={onDrawRelease} onBlur={onDrawRelease}>Hold to draw on surface</button>
-        </>}
-        <small>{automaticSurface ? "Drawing uses the calibrated side-camera contact estimate. If the target is lost, drawing stops." : "Manual control is active. Physical contact is not measured in this mode."}</small>
-      </div>
+        <button className="step-action" type="button" aria-pressed={tracking} disabled={!camerasOn} onClick={() => onTracking(!tracking)}>
+          {tracking ? "Stop tracking" : pen ? "Start pen tracking" : "Start finger tracking"}
+        </button>
+        {trackerError && <p className="camera-error">{trackerError}</p>}
+      </section>
+
+      <section className="calibration-step" data-done={cornersDone}>
+        <h3>3. Page corners <span>{cornersDone ? "done" : `${points.length}/4`}</span></h3>
+        <div className="camera-preview" ref={previewRef} onPointerDown={pen ? undefined : capture} role="application" aria-label="Camera 1 preview">
+          <video className="camera-video-mirrored" ref={videoRef} muted playsInline />
+          {points.map((point, i) => <span className="calibration-point" key={`${point.x}-${point.y}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }} aria-label={labels[i]} />)}
+          {marker && <span className="led-marker" style={{ left: `${marker.x * 100}%`, top: `${marker.y * 100}%` }} aria-label="Pen LED" />}
+        </div>
+        {cornersDone
+          ? <button className="step-action secondary" type="button" disabled={!camerasOn} onClick={reset}>Redo corners</button>
+          : pen && (
+            <button className="step-action" type="button" disabled={!tracking || !marker} onClick={captureLed}>
+              {!tracking ? "Start tracking first" : marker ? `Capture ${labels[points.length]} corner` : "Can't see the LED"}
+            </button>
+          )}
+      </section>
+
+      {/* Always mounted, even in finger mode: the tracker reads this video through secondaryVideoRef. */}
+      <section className="calibration-step" data-done={zCalibrated} hidden={!pen}>
+        <h3>4. Pen height <span>{penHeight === null ? "" : penHeight < DOWN_BELOW ? "pen down" : "pen up"}</span></h3>
+        <div className="camera-secondary-feed" ref={sidePreviewRef} hidden={activeCameraCount < 2}>
+          <video ref={secondaryVideoRef} muted playsInline aria-label="Webcam (Z) feed" />
+          {sideMarker && <span className="led-marker" style={{ left: `${sideMarker.x * 100}%`, top: `${sideMarker.y * 100}%` }} aria-label="Pen LED, webcam" />}
+        </div>
+        {activeCameraCount < 2
+          ? <p className="tracking-message">Needs the webcam (Z) from step 1.</p>
+          : !tracking
+            ? <p className="tracking-message">Start tracking first.</p>
+            : (
+              <>
+                {!sideLedPoint && <p className="tracking-message">The webcam can't see the LED. Point it across the paper at tip height.</p>}
+                <div className="tracking-mode">
+                  <button type="button" disabled={!sideLedPoint} onClick={() => { setTouchY(sideLedPoint!.y); setZError(null); }}>
+                    Tip on paper{touchY !== null ? " ✓" : ""}
+                  </button>
+                  <button type="button" disabled={!sideLedPoint || touchY === null} onClick={() => setLifted(sideLedPoint!.y)}>
+                    Tip lifted
+                  </button>
+                </div>
+              </>
+            )}
+        {zError && <p className="camera-error">{zError}</p>}
+      </section>
     </div>
   );
 }

@@ -6,6 +6,17 @@ export interface CameraDevice {
   label: string;
 }
 
+function cameraErrorMessage(e: unknown) {
+  const name = e instanceof DOMException ? e.name : "";
+  return name === "NotAllowedError"
+    ? "Camera permission was denied. Allow it in the browser's site settings."
+    : name === "NotFoundError"
+      ? "No webcam was found. Connect the Logitech camera and try again."
+      : name === "NotReadableError"
+        ? "Another app is using this camera (a Python script, Zoom, Teams, the Windows Camera app, OBS), or both cameras share one USB port/hub. Close the app or move a camera to another port, then try again."
+        : `Could not open this camera (${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}).`;
+}
+
 export function useCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
@@ -14,7 +25,8 @@ export function useCamera() {
   const [error, setError] = useState<string | null>(null);
   const [activeCameraCount, setActiveCameraCount] = useState(0);
   const [devices, setDevices] = useState<CameraDevice[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [selectedDeviceId, setSelectedDeviceId] = useState(""); // camera 1: X/Y
+  const [selectedSecondaryId, setSelectedSecondaryId] = useState(""); // webcam: Z only; "" picks any other camera
 
   const refreshDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return [];
@@ -36,7 +48,7 @@ export function useCamera() {
     setStatus("idle");
   }, []);
 
-  const start = useCallback(async (deviceId?: string) => {
+  const start = useCallback(async (deviceId?: string, secondaryDeviceId?: string) => {
     setStatus("requesting");
     setError(null);
     try {
@@ -49,23 +61,32 @@ export function useCamera() {
         },
         audio: false,
       });
+      // Release the running cameras first: Windows usually won't open a webcam that's still in use, even by this page.
+      streamRefs.current.forEach((stream) => stream?.getTracks().forEach((track) => track.stop()));
+      streamRefs.current = [null, null];
       const availableBeforePermission = await refreshDevices();
       const requestedPrimaryId = deviceId || availableBeforePermission[0]?.deviceId;
       const primaryStream = await navigator.mediaDevices.getUserMedia(constraints(requestedPrimaryId));
       const available = await refreshDevices();
       const primaryId = primaryStream.getVideoTracks()[0]?.getSettings().deviceId || requestedPrimaryId;
-      const secondaryId = available
-        .map((camera) => camera.deviceId)
-        .find((id) => id && id !== primaryId);
+      // A chosen webcam is tried alone; "any other camera" tries each one, since virtual cameras often fail to open.
+      const secondaryIds = secondaryDeviceId && secondaryDeviceId !== primaryId
+        ? [secondaryDeviceId]
+        : available.map((camera) => camera.deviceId).filter((id) => id && id !== primaryId);
       const streams = [primaryStream];
-      if (secondaryId) {
+      let secondaryError: string | null = secondaryIds.length ? null : "Only one camera is connected.";
+      for (const id of secondaryIds) {
         try {
-          streams.push(await navigator.mediaDevices.getUserMedia(constraints(secondaryId)));
-        } catch {
-          // One usable camera is enough to keep the preview available; the UI reports 1/2.
+          streams.push(await navigator.mediaDevices.getUserMedia(constraints(id)));
+          secondaryError = null;
+          break;
+        } catch (e) {
+          // One usable camera keeps the preview working; say why the webcam didn't open so Z can be fixed.
+          console.error("Webcam (Z) failed to open:", e);
+          secondaryError = cameraErrorMessage(e);
         }
       }
-      streamRefs.current.forEach((stream) => stream?.getTracks().forEach((track) => track.stop()));
+      const secondaryId = streams[1]?.getVideoTracks()[0]?.getSettings().deviceId || "";
       streamRefs.current = [streams[0] ?? null, streams[1] ?? null];
       const videos = [videoRef.current, secondaryVideoRef.current];
       for (const [index, stream] of streams.entries()) {
@@ -76,19 +97,14 @@ export function useCamera() {
         }
       }
       setSelectedDeviceId(primaryId);
+      setSelectedSecondaryId(secondaryId || secondaryDeviceId || "");
+      if (secondaryError) setError(`The webcam (Z) didn't open, so pen up/down can't be calibrated. ${secondaryError}`);
       setActiveCameraCount(streams.length);
       await refreshDevices();
       setStatus("ready");
     } catch (e) {
       console.error("Camera failed to open:", e);
-      const name = e instanceof DOMException ? e.name : "";
-      setError(name === "NotAllowedError"
-        ? "Camera permission was denied. Allow it in the browser's site settings."
-        : name === "NotFoundError"
-          ? "No webcam was found. Connect the Logitech camera and try again."
-          : name === "NotReadableError"
-            ? "Another app is using this camera (a Python script, Zoom, Teams, the Windows Camera app, OBS). Close it and try again."
-            : `Could not open this camera (${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}).`);
+      setError(cameraErrorMessage(e));
       setStatus("error");
     }
   }, [refreshDevices]);
@@ -114,5 +130,5 @@ export function useCamera() {
     };
   }, [refreshDevices, stop]);
 
-  return { videoRef, secondaryVideoRef, status, error, devices, activeCameraCount, selectedDeviceId, setSelectedDeviceId, start, stop, attach };
+  return { videoRef, secondaryVideoRef, status, error, devices, activeCameraCount, selectedDeviceId, setSelectedDeviceId, selectedSecondaryId, setSelectedSecondaryId, start, stop, attach };
 }

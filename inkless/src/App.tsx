@@ -490,14 +490,9 @@ export default function App() {
               cameras={camera.devices}
               selectedCamera={camera.selectedDeviceId}
               onSelectCamera={camera.setSelectedDeviceId}
-              onStartCamera={(id) => {
-                setAutomaticSurface(false);
-                drawHold.release();
-                setTracking(true);
-                setHomography(null);
-                setZCalibration(null);
-                void camera.start(id);
-              }}
+              selectedSecondaryCamera={camera.selectedSecondaryId}
+              onSelectSecondaryCamera={camera.setSelectedSecondaryId}
+              onStartCamera={camera.start}
               tracking={tracking}
               trackerStatus={tracker.status}
               trackerError={tracker.error}
@@ -510,23 +505,24 @@ export default function App() {
                 setHomography(null);
                 setZCalibration(null);
                 setTrackingMode(mode);
-              }}
+              } }
               onVideoMount={camera.attach}
               ledPoint={tracker.point}
               sideLedPoint={tracker.sidePoint}
               penHeight={tracker.z}
               zCalibrated={zCalibration !== null}
               onZCalibrated={setZCalibration}
-              ledThreshold={led.threshold}
-              onLedThreshold={led.setThreshold}
-              ledMode={led.mode}
-              onLedMode={led.setMode}
-              ledFps={tracker.fps}
-              automaticSurface={automaticSurface}
-              onAutomaticSurface={setAutomaticSurface}
-              onDrawPress={drawHold.press}
-              onDrawRelease={drawHold.release}
-            />
+              onPage={led.pagePoint !== null} ledThreshold={0} onLedThreshold={function (_threshold: number): void {
+                throw new Error("Function not implemented.");
+              } } ledMode={"green"} onLedMode={function (_mode: "green" | "bright"): void {
+                throw new Error("Function not implemented.");
+              } } ledFps={0} automaticSurface={false} onAutomaticSurface={function (_value: boolean): void {
+                throw new Error("Function not implemented.");
+              } } onDrawPress={function (): void {
+                throw new Error("Function not implemented.");
+              } } onDrawRelease={function (): void {
+                throw new Error("Function not implemented.");
+              } }            />
           </section>
         )}
 
@@ -623,7 +619,7 @@ export default function App() {
             strokes={strokes}
             onSample={onSample}
             background={background}
-            penPoint={tracker.pagePoint}
+            penPoint={trackingMode === "pen" ? led.pagePoint : null}
             cursorColor={
               tool === "eraser"
                 ? "rgba(0, 0, 0, 0.56)"
@@ -653,7 +649,7 @@ export default function App() {
         </button>
 
         <CalibrationOverlay
-              key={trackingMode}
+          key={trackingMode}
           videoRef={camera.videoRef}
           secondaryVideoRef={camera.secondaryVideoRef}
           activeCameraCount={camera.activeCameraCount}
@@ -664,43 +660,39 @@ export default function App() {
           cameras={camera.devices}
           selectedCamera={camera.selectedDeviceId}
           onSelectCamera={camera.setSelectedDeviceId}
-          onStartCamera={(id) => {
-                setAutomaticSurface(false);
-                drawHold.release();
-                setTracking(true);
-                setHomography(null);
-                setZCalibration(null);
-                void camera.start(id);
-              }}
+          selectedSecondaryCamera={camera.selectedSecondaryId}
+          onSelectSecondaryCamera={camera.setSelectedSecondaryId}
+          onStartCamera={camera.start}
           tracking={tracking}
           trackerStatus={tracker.status}
           trackerError={tracker.error}
           onTracking={setTracking}
           trackingMode={trackingMode}
           onTrackingMode={(mode) => {
-                if (mode === trackingMode) return;
-                setAutomaticSurface(false);
-                drawHold.release();
-                setHomography(null);
-                setZCalibration(null);
-                setTrackingMode(mode);
-              }}
+            if (mode === trackingMode) return;
+            setAutomaticSurface(false);
+            drawHold.release();
+            setHomography(null);
+            setZCalibration(null);
+            setTrackingMode(mode);
+          } }
           onVideoMount={camera.attach}
           ledPoint={tracker.point}
           sideLedPoint={tracker.sidePoint}
           penHeight={tracker.z}
           zCalibrated={zCalibration !== null}
           onZCalibrated={setZCalibration}
-              ledThreshold={led.threshold}
-              onLedThreshold={led.setThreshold}
-              ledMode={led.mode}
-              onLedMode={led.setMode}
-              ledFps={tracker.fps}
-              automaticSurface={automaticSurface}
-              onAutomaticSurface={setAutomaticSurface}
-              onDrawPress={drawHold.press}
-              onDrawRelease={drawHold.release}
-        />
+          onPage={led.pagePoint !== null} ledThreshold={0} onLedThreshold={function (): void {
+            throw new Error("Function not implemented.");
+          } } ledMode={"green"} onLedMode={function (): void {
+            throw new Error("Function not implemented.");
+          } } ledFps={0} automaticSurface={false} onAutomaticSurface={function (): void {
+            throw new Error("Function not implemented.");
+          } } onDrawPress={function (): void {
+            throw new Error("Function not implemented.");
+          } } onDrawRelease={function (): void {
+            throw new Error("Function not implemented.");
+          } }        />
       </section>
 
       {!cameraOpen && (

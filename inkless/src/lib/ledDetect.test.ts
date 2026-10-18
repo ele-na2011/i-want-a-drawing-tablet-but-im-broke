@@ -31,8 +31,9 @@ test("z is 0 on the paper and 1 at the lifted reference, whichever way the camer
 });
 
 test("pen down and up use different thresholds", () => {
-  assert.equal(nextPenDown(0.45, false), false); // not low enough to start a stroke
-  assert.equal(nextPenDown(0.45, true), true);   // not high enough to end one
-  assert.equal(nextPenDown(0.2, false), true);
-  assert.equal(nextPenDown(0.7, true), false);
+  assert.equal(nextPenDown(0.9, false), false); // not low enough to start a stroke
+  assert.equal(nextPenDown(0.9, true), true);   // not high enough to end one
+  assert.equal(nextPenDown(0.5, false), true);  // tip on paper reads 0.5-0.78
+  assert.equal(nextPenDown(0.78, false), true);
+  assert.equal(nextPenDown(1.0, true), false);  // lifted reads ~1.0
 });
