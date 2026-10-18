@@ -35,5 +35,6 @@ test("pen down and up use different thresholds", () => {
   assert.equal(nextPenDown(0.9, true), true);   // not high enough to end one
   assert.equal(nextPenDown(0.5, false), true);  // tip on paper reads 0.5-0.78
   assert.equal(nextPenDown(0.78, false), true);
-  assert.equal(nextPenDown(1.0, true), false);  // lifted reads ~1.0
+  assert.equal(nextPenDown(1.0, true), true);   // a wobble up to the lifted reference keeps drawing
+  assert.equal(nextPenDown(1.1, true), false);  // a clear lift ends the stroke
 });

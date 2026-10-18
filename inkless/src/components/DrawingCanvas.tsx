@@ -22,10 +22,24 @@ export default function DrawingCanvas({ strokes, onSample, cursorColor, cursorSi
   const down = useRef(false);
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
 
-  // Redraw everything whenever strokes change.
+  const drawn = useRef<Stroke[]>([]);
+
+  // While drawing, only paint what's new; redrawing every stroke per pen sample got slower as the page filled up.
+  // Anything else (undo, clear, another page) redraws everything.
   useEffect(() => {
     const c = ref.current!;
     const ctx = c.getContext("2d")!;
+    const prev = drawn.current;
+    const k = prev.length;
+    drawn.current = strokes;
+    const grows = k > 0 && strokes.length >= k && prev.every((s, i) =>
+      i < k - 1 ? strokes[i] === s : strokes[i].id === s.id && strokes[i].points.length >= s.points.length);
+    if (grows) {
+      const tail = strokes[k - 1];
+      const fresh = [{ ...tail, points: tail.points.slice(prev[k - 1].points.length - 1) }, ...strokes.slice(k)];
+      drawStrokes(ctx, fresh, c.width, c.height, DENSITY);
+      return;
+    }
     ctx.clearRect(0, 0, c.width, c.height);
     drawStrokes(ctx, strokes, c.width, c.height, DENSITY);
   }, [strokes]);
