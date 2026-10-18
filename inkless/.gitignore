@@ -26,6 +26,7 @@ dist-ssr
 # Environment variables (secret keys)
 .env
 .env.*
+!.env.example
 
 # PlatformIO build output
 .pio
@@ -39,4 +40,4 @@ __pycache__/
 *.py[cod]
 
 # Model weights (optional: keep large model files out of Git)
-# inkless/best.pt
+# best.pt  (still tracked: uncomment AND run `git rm --cached best.pt` to drop it)

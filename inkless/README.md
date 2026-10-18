@@ -20,7 +20,14 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 The file is ignored by Git and must not be committed.
 
+<<<<<<< HEAD
 ## Vercel deployment
+=======
+In Supabase Authentication, enable Google and add the app URL to the allowed
+redirect URLs.
+
+## GitHub Pages deployment
+>>>>>>> 222b8b1cb7578b1edf850c90821e68d2dc8a7cf3
 
 The repository includes a root
 [`vercel.json`](../vercel.json) that builds the `inkless` app and publishes its
