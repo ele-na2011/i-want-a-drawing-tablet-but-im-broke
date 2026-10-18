@@ -45,6 +45,7 @@ export default function App() {
   const [penOn, setPenOn] = useState(true);
   const [ask, setAsk] = useState<Ask | null>(null); // the one open dialog, if any
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [calibrationOpen, setCalibrationOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(true);
   const camera = useCamera();
   const [homography, setHomography] = useState<Homography | null>(null);
@@ -201,8 +202,30 @@ export default function App() {
         <Home
           store={store} place={place} onPlace={setPlace}
           onNewDoc={newDoc} onNewProject={newProject} onNewFolder={newFolder}
+          onCalibrate={() => setCalibrationOpen(true)}
           onOpenDoc={openDoc} onDocMenu={docMenu} onSettings={() => setSettingsOpen(true)}
         />
+        {calibrationOpen && (
+          <section className="camera-panel hub-calibration-panel" aria-label="Workspace calibration">
+            <h2>Calibrate workspace</h2>
+            <button className="camera-close" aria-label="Close calibration" onClick={() => setCalibrationOpen(false)}>x</button>
+            <CalibrationOverlay
+              videoRef={camera.videoRef}
+              cameraStatus={camera.status}
+              cameraError={camera.error}
+              calibrated={homography !== null}
+              onCalibrated={setHomography}
+              cameras={camera.devices}
+              selectedCamera={camera.selectedDeviceId}
+              onSelectCamera={camera.setSelectedDeviceId}
+              onStartCamera={camera.start}
+              fingerTracking={fingerTracking}
+              handStatus={hand.status}
+              handError={hand.error}
+              onFingerTracking={setFingerTracking}
+            />
+          </section>
+        )}
         {dialog}
         {settingsOpen && (
           <SettingsDialog

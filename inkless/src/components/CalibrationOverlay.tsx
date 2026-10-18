@@ -26,6 +26,7 @@ const labels = ["top-left", "top-right", "bottom-right", "bottom-left"];
 
 export default function CalibrationOverlay({ videoRef, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, fingerTracking, handStatus, handError, onFingerTracking }: Props) {
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
+  const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([]);
   const status: TrackingStatus = fingerTracking && handStatus === "ready"
     ? "drawing"
     : fingerTracking && handStatus === "hand-not-found"
@@ -37,21 +38,29 @@ export default function CalibrationOverlay({ videoRef, cameraStatus, cameraError
       : "camera-off";
   const sensor = fuseSensors({ zLevel: 0.5, acoustic: calibrated ? 0.72 : 0, velocity: 0.08 });
 
-  const reset = () => setPoints([]);
+  const reset = () => {
+    setPoints([]);
+    setCalibrationPoints([]);
+  };
   const capture = (event: React.PointerEvent<HTMLDivElement>) => {
     if (cameraStatus !== "ready" || points.length >= 4) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const next = [...points, { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height }];
+    const nextCalibration = [
+      ...calibrationPoints,
+      { x: 1 - next[next.length - 1].x, y: next[next.length - 1].y },
+    ];
     setPoints(next);
+    setCalibrationPoints(nextCalibration);
     if (next.length === 4) {
-      onCalibrated(findHomography(next, destination));
+      onCalibrated(findHomography(nextCalibration, destination));
     }
   };
 
   return (
     <div className="camera-content">
       <div className="camera-preview" onPointerDown={capture} role="application" aria-label="Camera calibration surface">
-        <video ref={videoRef} muted playsInline />
+        <video className="camera-video-mirrored" ref={videoRef} muted playsInline />
         {points.map((point, i) => <span className="calibration-point" key={`${point.x}-${point.y}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }} aria-label={labels[i]} />)}
         {cameraStatus === "ready" && points.length < 4 && <p className="calibration-hint">Tap {labels[points.length]} corner</p>}
       </div>
