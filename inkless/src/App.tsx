@@ -347,6 +347,7 @@ export default function App() {
         <PageView>
           <DrawingCanvas
             strokes={strokes} onSample={onSample} background={background}
+            penPoint={trackingMode === "pen" ? led.pagePoint : null}
             cursorColor={tool === "eraser" ? "rgba(0, 0, 0, 0.56)" : color}
             cursorSize={Math.max(8, tool === "eraser" ? thickness * 4 : thickness)}
           />

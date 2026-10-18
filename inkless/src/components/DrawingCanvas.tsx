@@ -10,13 +10,14 @@ interface Props {
   cursorColor: string; // ring follows the pointer in the pen colour...
   cursorSize: number;  // ...and is as wide as the stroke it would draw (page px)
   background: string | null; // imported image shown under the ink
+  penPoint?: { x: number; y: number } | null; // where the tracked pen tip is, 0..1, even while lifted
 }
 
 // Pixels per page px: at least 2 so the page stays sharp when zoomed in or on high-density screens.
 const DENSITY = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
 
 // UI OWNER: this is the drawing surface, one fixed-size page. PageView moves and zooms it.
-export default function DrawingCanvas({ strokes, onSample, cursorColor, cursorSize, background }: Props) {
+export default function DrawingCanvas({ strokes, onSample, cursorColor, cursorSize, background, penPoint }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const down = useRef(false);
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
@@ -65,6 +66,12 @@ export default function DrawingCanvas({ strokes, onSample, cursorColor, cursorSi
         <div
           className="cursor-ring" aria-hidden="true"
           style={{ left: hover.x, top: hover.y, width: cursorSize, height: cursorSize, borderColor: cursorColor }}
+        />
+      )}
+      {penPoint && (
+        <div
+          className="cursor-ring pen-ring" aria-hidden="true"
+          style={{ left: `${penPoint.x * 100}%`, top: `${penPoint.y * 100}%`, width: cursorSize, height: cursorSize, borderColor: cursorColor }}
         />
       )}
     </div>

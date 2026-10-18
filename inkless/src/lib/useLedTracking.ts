@@ -27,6 +27,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
   const [point, setPoint] = useState<{ x: number; y: number } | null>(null); // last LED seen, 0..1 in the raw video frame
   const [sidePoint, setSidePoint] = useState<{ x: number; y: number } | null>(null); // same, in the side camera
   const [z, setZ] = useState<number | null>(null);
+  const [pagePoint, setPagePoint] = useState<{ x: number; y: number } | null>(null); // the tip on the page, 0..1, pen up or down
   const callbackRef = useRef(onSample);
   const homographyRef = useRef(homography);
   const zCalibrationRef = useRef(zCalibration);
@@ -40,6 +41,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
       setPoint(null);
       setSidePoint(null);
       setZ(null);
+      setPagePoint(null);
       return;
     }
     let cancelled = false;
@@ -64,6 +66,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
     const lost = (now: number) => {
       smoothed = null;
       down = false;
+      setPagePoint(null);
       callbackRef.current({ x: 0, y: 0, t: now }, false);
       reportStatus("led-not-found");
     };
@@ -103,6 +106,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
       smoothed = smoothed
         ? { x: smoothed.x * 0.3 + mapped.x * 0.7, y: smoothed.y * 0.3 + mapped.y * 0.7 }
         : mapped;
+      setPagePoint(smoothed); // shown on the page even while lifted, so you can see where you'll write
       // Side camera on but not calibrated, or it lost the LED: stay up rather than draw stray lines.
       down = height !== null ? nextPenDown(height, down) : !hasSide;
       callbackRef.current({ ...smoothed, t: now }, down);
@@ -163,5 +167,5 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
     };
   }, [enabled, videoRef, sideVideoRef]);
 
-  return { status, error, point, sidePoint, z };
+  return { status, error, point, sidePoint, z, pagePoint };
 }

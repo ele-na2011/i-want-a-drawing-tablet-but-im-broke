@@ -43,6 +43,7 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
   const [touchY, setTouchY] = useState<number | null>(null);
   const [zError, setZError] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const sidePreviewRef = useRef<HTMLDivElement>(null);
   useEffect(onVideoMount, [onVideoMount]);
   const status: TrackingStatus = tracking && trackerStatus === "ready" && calibrated
     ? "drawing"
@@ -88,6 +89,12 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
     }
   };
 
+  const sidePreview = sidePreviewRef.current;
+  const sideVideo = secondaryVideoRef.current;
+  const sideMarker = sideLedPoint && sidePreview && sideVideo
+    ? videoToPreviewPoint(sideLedPoint, sidePreview.getBoundingClientRect(), sideVideo)
+    : null;
+
   const capture = (event: React.PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height };
@@ -118,7 +125,10 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
         )}
       </div>
       {/* The bottom camera gets its own box, so it never covers a corner of the main preview. */}
-      <video className="camera-video-mirrored camera-secondary-feed" ref={secondaryVideoRef} muted playsInline aria-label="Bottom camera feed" hidden={activeCameraCount < 2} />
+      <div className="camera-secondary-feed" ref={sidePreviewRef} hidden={activeCameraCount < 2}>
+        <video ref={secondaryVideoRef} muted playsInline aria-label="Bottom camera feed" />
+        {sideMarker && <span className="led-marker" style={{ left: `${sideMarker.x * 100}%`, top: `${sideMarker.y * 100}%` }} aria-label="Pen LED, bottom camera" />}
+      </div>
       {trackingMode === "pen" && tracking && points.length < 4 && (
         <button type="button" disabled={!marker} onClick={captureLed}>
           {marker ? `Capture ${labels[points.length]} corner` : "Capture corner (LED not seen)"}
