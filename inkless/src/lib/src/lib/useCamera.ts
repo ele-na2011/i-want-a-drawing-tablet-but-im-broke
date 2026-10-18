@@ -17,13 +17,14 @@ export function useCamera() {
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
 
   const refreshDevices = useCallback(async () => {
-    if (!navigator.mediaDevices?.enumerateDevices) return;
+    if (!navigator.mediaDevices?.enumerateDevices) return [];
     const all = await navigator.mediaDevices.enumerateDevices();
     const cameras = all
       .filter((device) => device.kind === "videoinput")
       .map((device, index) => ({ deviceId: device.deviceId, label: device.label || `Camera ${index + 1}` }));
     setDevices(cameras);
     setSelectedDeviceId((current) => cameras.some((device) => device.deviceId === current) ? current : cameras[0]?.deviceId ?? "");
+    return cameras;
   }, []);
 
   const stop = useCallback(() => {
@@ -39,22 +40,31 @@ export function useCamera() {
     setStatus("requesting");
     setError(null);
     try {
-      const available = devices.length > 0 ? devices.map((device) => device.deviceId) : await navigator.mediaDevices.enumerateDevices()
-        .then((all) => all.filter((item) => item.kind === "videoinput").map((item) => item.deviceId));
-      const primaryId = deviceId || available[0];
-      const secondaryId = available.find((id) => id && id !== primaryId);
-      if (!primaryId) throw new DOMException("No webcam was found.", "NotFoundError");
-
-      const ids = [primaryId, secondaryId].filter((id): id is string => Boolean(id));
-      const streams = await Promise.all(ids.map((id) => navigator.mediaDevices.getUserMedia({
+      const constraints = (id?: string): MediaStreamConstraints => ({
         video: {
-          deviceId: { exact: id },
+          ...(id ? { deviceId: { exact: id } } : {}),
           width: { ideal: 640 },
           height: { ideal: 480 },
           frameRate: { ideal: 30, max: 60 },
         },
         audio: false,
-      })));
+      });
+      const availableBeforePermission = await refreshDevices();
+      const requestedPrimaryId = deviceId || availableBeforePermission[0]?.deviceId;
+      const primaryStream = await navigator.mediaDevices.getUserMedia(constraints(requestedPrimaryId));
+      const available = await refreshDevices();
+      const primaryId = primaryStream.getVideoTracks()[0]?.getSettings().deviceId || requestedPrimaryId;
+      const secondaryId = available
+        .map((camera) => camera.deviceId)
+        .find((id) => id && id !== primaryId);
+      const streams = [primaryStream];
+      if (secondaryId) {
+        try {
+          streams.push(await navigator.mediaDevices.getUserMedia(constraints(secondaryId)));
+        } catch {
+          // One usable camera is enough to keep the preview available; the UI reports 1/2.
+        }
+      }
       streamRefs.current.forEach((stream) => stream?.getTracks().forEach((track) => track.stop()));
       streamRefs.current = [streams[0] ?? null, streams[1] ?? null];
       const videos = [videoRef.current, secondaryVideoRef.current];

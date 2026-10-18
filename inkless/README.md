@@ -20,25 +20,25 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 The file is ignored by Git and must not be committed.
 
-## GitHub Pages deployment
+## Vercel deployment
 
-Pushes to `main` deploy the `inkless` app through
-[`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml).
-The published project site is:
+The repository includes a root
+[`vercel.json`](../vercel.json) that builds the `inkless` app and publishes its
+Vite output from `inkless/dist`.
 
-```text
-https://ele-na2011.github.io/i-want-a-drawing-tablet-but-im-broke/
-```
+In Vercel:
 
-Add these repository Actions secrets before using Google sign-in:
+1. Import this GitHub repository.
+2. Leave the project root set to the repository root.
+3. Add these Environment Variables for Production, Preview, and Development:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy.
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+Vercel provides HTTPS, which browsers require for camera access. Users only
+need a browser; they do not need Node.js, npm, or Supabase installed locally.
 
-In Supabase, add the Pages URL above to **Authentication > URL Configuration >
-Redirect URLs**. Add the same URL to the Google OAuth provider's authorized
-redirect configuration if Google requires it.
-
-GitHub Pages serves the production build over HTTPS, which is required by
-browsers for camera access. Users only need a browser; they do not need Node.js,
-npm, or Supabase installed locally.
+After deployment, add the Vercel domain (for example,
+`https://your-project.vercel.app`) to Supabase **Authentication > URL
+Configuration > Redirect URLs** and to the Google OAuth provider's authorized
+redirect configuration.

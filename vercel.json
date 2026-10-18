@@ -1,0 +1,5 @@
+{
+  "installCommand": "npm ci --prefix inkless",
+  "buildCommand": "npm run build --prefix inkless",
+  "outputDirectory": "inkless/dist"
+}
