@@ -29,3 +29,14 @@ dist-ssr
 
 # PlatformIO build output
 .pio
+
+# Python virtual environments
+.venv/
+**/.venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Model weights (optional: keep large model files out of Git)
+# inkless/best.pt

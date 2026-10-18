@@ -159,6 +159,11 @@ def main():
                 break
             elif key == ord("m"):
                 cv2.imshow("Detection Mask", mask)
+            elif key == ord("s"):
+                count = len(list(IMAGE_DIR.glob("*.jpg")))
+                path = IMAGE_DIR / f"led_{count:04d}.jpg"
+                cv2.imwrite(str(path), frame)
+                print(f"Saved {path}")    
 
             if cv2.getWindowProperty(
                 WINDOW_NAME, cv2.WND_PROP_VISIBLE

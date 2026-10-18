@@ -8,6 +8,9 @@ type Props = { onSignIn?: () => void };
 
 export default function SignIn(_props: Props) {
   const comingSoon = () => alert("Coming soon");
+  const signIn = () => {
+    signInWithGoogle().catch((error: Error) => alert(error.message));
+  };
 
   return (
     <div className="signin">
@@ -16,7 +19,7 @@ export default function SignIn(_props: Props) {
       <p className="signin-tagline">Draw or write whatever you want, whenever you want.</p>
 
       <div className="signin-buttons">
-        <button className="signin-google" onClick={() => signInWithGoogle()}>
+        <button className="signin-google" onClick={signIn}>
           <img src={google} alt="" width={30} height={30} />
           Sign in with Google
         </button>

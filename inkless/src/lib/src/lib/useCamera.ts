@@ -8,9 +8,11 @@ export interface CameraDevice {
 
 export function useCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const secondaryVideoRef = useRef<HTMLVideoElement>(null);
+  const streamRefs = useRef<(MediaStream | null)[]>([null, null]);
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [activeCameraCount, setActiveCameraCount] = useState(0);
   const [devices, setDevices] = useState<CameraDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
 
@@ -25,9 +27,11 @@ export function useCamera() {
   }, []);
 
   const stop = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
+    streamRefs.current.forEach((stream) => stream?.getTracks().forEach((track) => track.stop()));
+    streamRefs.current = [null, null];
     if (videoRef.current) videoRef.current.srcObject = null;
+    if (secondaryVideoRef.current) secondaryVideoRef.current.srcObject = null;
+    setActiveCameraCount(0);
     setStatus("idle");
   }, []);
 
@@ -35,24 +39,34 @@ export function useCamera() {
     setStatus("requesting");
     setError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const available = devices.length > 0 ? devices.map((device) => device.deviceId) : await navigator.mediaDevices.enumerateDevices()
+        .then((all) => all.filter((item) => item.kind === "videoinput").map((item) => item.deviceId));
+      const primaryId = deviceId || available[0];
+      const secondaryId = available.find((id) => id && id !== primaryId);
+      if (!primaryId) throw new DOMException("No webcam was found.", "NotFoundError");
+
+      const ids = [primaryId, secondaryId].filter((id): id is string => Boolean(id));
+      const streams = await Promise.all(ids.map((id) => navigator.mediaDevices.getUserMedia({
         video: {
-          deviceId: deviceId ? { exact: deviceId } : undefined,
+          deviceId: { exact: id },
           width: { ideal: 640 },
           height: { ideal: 480 },
           frameRate: { ideal: 30, max: 60 },
         },
         audio: false,
-      });
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = stream;
-      const activeDeviceId = stream.getVideoTracks()[0]?.getSettings().deviceId;
-      if (activeDeviceId) setSelectedDeviceId(activeDeviceId);
-      const video = videoRef.current;
-      if (video) {
-        video.srcObject = stream;
-        await video.play();
+      })));
+      streamRefs.current.forEach((stream) => stream?.getTracks().forEach((track) => track.stop()));
+      streamRefs.current = [streams[0] ?? null, streams[1] ?? null];
+      const videos = [videoRef.current, secondaryVideoRef.current];
+      for (const [index, stream] of streams.entries()) {
+        const video = videos[index];
+        if (video) {
+          video.srcObject = stream;
+          await video.play();
+        }
       }
+      setSelectedDeviceId(primaryId);
+      setActiveCameraCount(streams.length);
       await refreshDevices();
       setStatus("ready");
     } catch (e) {
@@ -76,5 +90,5 @@ export function useCamera() {
     };
   }, [refreshDevices, stop]);
 
-  return { videoRef, status, error, devices, selectedDeviceId, setSelectedDeviceId, start, stop };
+  return { videoRef, secondaryVideoRef, status, error, devices, activeCameraCount, selectedDeviceId, setSelectedDeviceId, start, stop };
 }
