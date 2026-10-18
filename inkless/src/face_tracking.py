@@ -1,4 +1,14 @@
-import cv2
+from pathlib import Path
+import importlib
+from typing import Any
+
+IMAGE_DIR = Path("led_images")
+IMAGE_DIR.mkdir(exist_ok=True)
+
+try:
+    cv2: Any = importlib.import_module("cv2")
+except ImportError:
+    cv2 = None
 
 WINDOW_NAME = "Green LED Tracking"
 
@@ -13,6 +23,13 @@ UPPER_GREEN = (85, 255, 255)
 MIN_LED_AREA = 2
 
 def main():
+    if cv2 is None:
+        print(
+            "OpenCV is not installed. Install it with: "
+            "python -m pip install opencv-python"
+        )
+        return 1
+
     camera = cv2.VideoCapture(0)
 
     try:
@@ -108,6 +125,11 @@ def main():
                 break
             elif key == ord("m"):
                 cv2.imshow("Detection Mask", mask)
+            elif key == ord("s"):
+                count = len(list(IMAGE_DIR.glob("*.jpg")))
+                path = IMAGE_DIR / f"led_{count:04d}.jpg"
+                cv2.imwrite(str(path), frame)
+                print(f"Saved {path}")    
 
             if cv2.getWindowProperty(
                 WINDOW_NAME, cv2.WND_PROP_VISIBLE
