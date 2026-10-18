@@ -3,7 +3,7 @@
 export const INPUT = 640;
 
 // Below this the model mostly fires on reflections; track_led.py used 0.1, which draws stray lines.
-export const MIN_SCORE = 0.25;
+export const MIN_SCORE = 0.3;
 
 export interface Letterbox { scale: number; padX: number; padY: number }
 
@@ -52,8 +52,8 @@ export function zLevel(y: number, cal: ZCalibration): number {
 
 // Two thresholds so detector jitter near the paper doesn't break a stroke into dashes.
 // Measured: a tip on the paper reads 0.5-0.78 (the one-frame touch reference sits low), lifted reads ~1.0.
-export const DOWN_BELOW = 0.8;
-export const UP_ABOVE = 0.88; // 0.95 kept drawing while lifting; 1.05 never ended strokes
+export const DOWN_BELOW = 0.85;
+export const UP_ABOVE = 0.95;
 export function nextPenDown(z: number, wasDown: boolean): boolean {
   return wasDown ? z < UP_ABOVE : z < DOWN_BELOW;
 }

@@ -48,7 +48,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
     let frame = 0;
     let busy = false;
     let lastTimestamp = -1;
-    let sessions: ort.InferenceSession[] = [];
+    let session: ort.InferenceSession | null = null;
     let smoothed: { x: number; y: number } | null = null;
     let down = false;
     let lastReportedStatus: LedTrackingStatus = "loading";
@@ -58,6 +58,11 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
         setStatus(next);
       }
     };
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = INPUT;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    const input = new Float32Array(3 * INPUT * INPUT);
+
     const lost = (now: number) => {
       smoothed = null;
       down = false;
@@ -66,34 +71,23 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
       reportStatus("led-not-found");
     };
 
-    // A frame buffer per camera, sharing one model session.
-    const makeFinder = (session: ort.InferenceSession) => {
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = INPUT;
-      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
-      const input = new Float32Array(3 * INPUT * INPUT);
-      return async (video: HTMLVideoElement) => {
-        const size = { width: video.videoWidth, height: video.videoHeight };
-        const box = letterbox(size.width, size.height);
-        ctx.fillStyle = "rgb(114, 114, 114)"; // ultralytics' letterbox grey
-        ctx.fillRect(0, 0, INPUT, INPUT);
-        ctx.drawImage(video, box.padX, box.padY, size.width * box.scale, size.height * box.scale);
-        toTensor(ctx.getImageData(0, 0, INPUT, INPUT).data, input);
-        const result = await session.run({ images: new ort.Tensor("float32", input, [1, 3, INPUT, INPUT]) });
-        return pickLed(result.output0.data as Float32Array, box, size);
-      };
+    const findLed = async (video: HTMLVideoElement) => {
+      const size = { width: video.videoWidth, height: video.videoHeight };
+      const box = letterbox(size.width, size.height);
+      ctx.fillStyle = "rgb(114, 114, 114)"; // ultralytics' letterbox grey
+      ctx.fillRect(0, 0, INPUT, INPUT);
+      ctx.drawImage(video, box.padX, box.padY, size.width * box.scale, size.height * box.scale);
+      toTensor(ctx.getImageData(0, 0, INPUT, INPUT).data, input);
+      const result = await session!.run({ images: new ort.Tensor("float32", input, [1, 3, INPUT, INPUT]) });
+      return pickLed(result.output0.data as Float32Array, box, size);
     };
-    let findTop: ReturnType<typeof makeFinder> | null = null;
-    let findSide: ReturnType<typeof makeFinder> | null = null;
 
     const detect = async (video: HTMLVideoElement, transform: Homography | null) => {
+      const led = await findLed(video);
       const side = sideVideoRef.current;
       const hasSide = !!side?.srcObject && side.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
       // Run even before z is calibrated, so the calibration buttons can read where the LED is.
-      // One after the other: onnxruntime-web shares one wasm heap, and two sessions or overlapping runs crash it
-      // ("memory access out of bounds").
-      const led = await findTop!(video);
-      const sideLed = hasSide ? await findSide!(side) : null;
+      const sideLed = hasSide ? await findLed(side) : null;
       if (cancelled) return;
       const now = performance.now();
       setPoint(led && { x: led.x, y: led.y }); // shown on the camera preview, even outside the page
@@ -123,7 +117,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
       const video = videoRef.current;
       const transform = homographyRef.current;
       // Inference is async and can take longer than a frame, so skip frames while one is running.
-      if (!busy && findTop && video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.currentTime !== lastTimestamp) {
+      if (!busy && session && video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.currentTime !== lastTimestamp) {
         busy = true;
         lastTimestamp = video.currentTime;
         detect(video, transform)
@@ -143,7 +137,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
       setError(null);
       try {
         // WebGPU runs a frame in ~30 ms off the main thread; the CPU fallback blocks the page ~200 ms per frame.
-        const load = () => ort.InferenceSession.create(MODEL_URL, { executionProviders: ["webgpu"] })
+        const created = await ort.InferenceSession.create(MODEL_URL, { executionProviders: ["webgpu"] })
           .catch((reason) => {
             console.error("WebGPU session failed:", reason);
             setError(!("gpu" in navigator)
@@ -151,13 +145,11 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
               : `The GPU couldn't run the LED model (${reason instanceof Error ? reason.message : String(reason)}), so pen tracking runs on the CPU and will lag.`);
             return ort.InferenceSession.create(MODEL_URL, { executionProviders: ["wasm"] });
           });
-        sessions = [await load()];
         if (cancelled) {
-          sessions.forEach((s) => s.release());
+          created.release();
           return;
         }
-        findTop = makeFinder(sessions[0]);
-        findSide = makeFinder(sessions[0]);
+        session = created;
         track();
       } catch (reason) {
         if (!cancelled) {
@@ -170,7 +162,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
-      sessions.forEach((s) => s.release());
+      session?.release();
       callbackRef.current({ x: 0, y: 0, t: performance.now() }, false);
     };
   }, [enabled, videoRef, sideVideoRef]);

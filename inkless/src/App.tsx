@@ -27,6 +27,7 @@ import CalibrationOverlay from "./components/CalibrationOverlay";
 import { useCamera } from "./lib/src/lib/useCamera";
 import type { Homography } from "./lib/homography";
 import type { ZCalibration } from "./lib/ledDetect";
+import { useHandTracking } from "./lib/useHandTracking";
 import { useLedTracking } from "./lib/useLedTracking";
 import "./styles.css";
 
@@ -78,6 +79,7 @@ export default function App() {
   const [homography, setHomography] = useState<Homography | null>(null);
   const [zCalibration, setZCalibration] = useState<ZCalibration | null>(null);
   const [tracking, setTracking] = useState(false);
+  const [trackingMode, setTrackingMode] = useState<"pen" | "finger">("pen");
   const importInput = useRef<HTMLInputElement>(null);
 
   const doc = store.docs.find((d) => d.id === docId);
@@ -110,14 +112,29 @@ export default function App() {
     [thickness, tool, color, penOn]
   );
 
+  const hand = useHandTracking({
+    videoRef: camera.videoRef,
+    homography,
+    enabled:
+      trackingMode === "finger" &&
+      tracking &&
+      camera.status === "ready",
+    onSample,
+  });
+
   const led = useLedTracking({
     videoRef: camera.videoRef,
     homography,
     sideVideoRef: camera.secondaryVideoRef,
     zCalibration,
-    enabled: tracking && camera.status === "ready",
+    enabled:
+      trackingMode === "pen" &&
+      tracking &&
+      camera.status === "ready",
     onSample,
   });
+
+  const tracker = trackingMode === "pen" ? led : hand;
 
   const tell = (title: string, message: string) =>
     setAsk({
@@ -459,12 +476,14 @@ export default function App() {
               onSelectSecondaryCamera={camera.setSelectedSecondaryId}
               onStartCamera={camera.start}
               tracking={tracking}
-              trackerStatus={led.status}
-              trackerError={led.error}
+              trackerStatus={tracker.status}
+              trackerError={tracker.error}
               onTracking={setTracking}
+              trackingMode={trackingMode}
+              onTrackingMode={setTrackingMode}
               onVideoMount={camera.attach}
-              ledPoint={led.point}
-              sideLedPoint={led.sidePoint}
+              ledPoint={trackingMode === "pen" ? led.point : null}
+              sideLedPoint={trackingMode === "pen" ? led.sidePoint : null}
               penHeight={led.z}
               zCalibrated={zCalibration !== null}
               onZCalibrated={setZCalibration}
@@ -562,7 +581,7 @@ export default function App() {
             strokes={strokes}
             onSample={onSample}
             background={background}
-            penPoint={led.pagePoint}
+            penPoint={trackingMode === "pen" ? led.pagePoint : null}
             cursorColor={
               tool === "eraser"
                 ? "rgba(0, 0, 0, 0.56)"
@@ -606,12 +625,14 @@ export default function App() {
           onSelectSecondaryCamera={camera.setSelectedSecondaryId}
           onStartCamera={camera.start}
           tracking={tracking}
-          trackerStatus={led.status}
-          trackerError={led.error}
+          trackerStatus={tracker.status}
+          trackerError={tracker.error}
           onTracking={setTracking}
+          trackingMode={trackingMode}
+          onTrackingMode={setTrackingMode}
           onVideoMount={camera.attach}
-          ledPoint={led.point}
-          sideLedPoint={led.sidePoint}
+          ledPoint={trackingMode === "pen" ? led.point : null}
+          sideLedPoint={trackingMode === "pen" ? led.sidePoint : null}
           penHeight={led.z}
           zCalibrated={zCalibration !== null}
           onZCalibrated={setZCalibration}

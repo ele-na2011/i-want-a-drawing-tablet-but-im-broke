@@ -260,6 +260,7 @@ button { font: inherit; color: inherit; }
 /* Status: also add an icon/text change per state, not just color */
 .status { white-space: nowrap; padding: var(--space-1) var(--space-3); border: 1px solid var(--border); border-radius: 999px; font-size: 0.875rem; background: var(--bg); }
 .status[data-status="drawing"] { border-color: var(--accent); }
+.status[data-status="hand-not-found"],
 .status[data-status="led-not-found"] { border-style: dashed; }
 
 /* ---------- Narrow screens ---------- */

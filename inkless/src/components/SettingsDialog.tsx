@@ -96,13 +96,15 @@ export default function SettingsDialog({
           <h3 id="guide-title">Set up your drawing tablet</h3>
 
           <p>
-            Inkless tracks a physical pen with a green LED using two
-            cameras.
+            Inkless supports two ways to draw: a physical pen with a
+            green LED, or your index finger. Switch between them in
+            Camera view whenever you need to.
           </p>
 
           <ol>
             <li>
-              <strong>Connect the hardware.</strong> Attach the green LED to the pen and connect two cameras.
+              <strong>Connect the hardware.</strong> For pen mode,
+              attach the green LED to the pen and connect two cameras.
               Both cameras should see the workspace at the same time.
             </li>
 
@@ -119,6 +121,15 @@ export default function SettingsDialog({
               <strong>Calibrate workspace</strong>, then tap the four
               corners in order: top-left, top-right, bottom-right, and
               bottom-left.
+            </li>
+
+            <li>
+              <strong>Choose a tracking method.</strong> Select{" "}
+              <strong>Pen + green LED</strong> for the physical pen
+              workflow, or select <strong>Index finger</strong> and
+              choose <strong>Track index finger</strong> for hand
+              tracking. You can switch back and forth without
+              recalibrating.
             </li>
 
             <li>

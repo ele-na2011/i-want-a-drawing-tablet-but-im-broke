@@ -30,5 +30,6 @@ export type TrackingStatus =
   | "calibrating"
   | "tracking"
   | "drawing"
+  | "hand-not-found"
   | "led-not-found"
   | "manual-mode";
