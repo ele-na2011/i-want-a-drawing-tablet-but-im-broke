@@ -36,15 +36,15 @@ export default function SettingsDialog({ onClose, onLogOut }: { onClose: () => v
       ) : (
         <section className="settings-guide" aria-labelledby="guide-title">
           <h3 id="guide-title">Set up your drawing tablet</h3>
-          <p>Use the camera to follow your hand and draw on the page without touching it.</p>
+          <p>Inkless supports two ways to draw: a physical pen with a green LED, or your index finger. Switch between them in Camera view whenever you need to.</p>
           <ol>
-            <li><strong>Connect the hardware.</strong> Plug in the camera and the green LED, then open a drawing.</li>
-            <li><strong>Choose a camera.</strong> In Camera view, select the camera that sees your workspace and choose <strong>Use selected</strong>.</li>
+            <li><strong>Connect the hardware.</strong> For pen mode, attach the green LED to the pen and connect two cameras. Both cameras should see the workspace at the same time.</li>
+            <li><strong>Choose and verify cameras.</strong> In Camera view, select a camera and choose <strong>Use selected</strong>. Check the <strong>Two-camera setup</strong> indicator; two cameras are needed for the pen workflow.</li>
             <li><strong>Calibrate.</strong> Click <strong>Calibrate workspace</strong>, then tap the four corners in order: top-left, top-right, bottom-right, and bottom-left.</li>
-            <li><strong>Start tracking.</strong> Choose <strong>Track index finger</strong>. Keep your hand and the green LED visible; drawing pauses when the hand is lost.</li>
+            <li><strong>Choose a tracking method.</strong> Select <strong>Pen + green LED</strong> for the physical pen workflow, or select <strong>Index finger</strong> and choose <strong>Track index finger</strong> for hand tracking. You can switch back and forth without recalibrating.</li>
             <li><strong>Draw and save.</strong> Use the toolbar to pick a pen, color, and thickness. Your work saves when you return home; use Export when you need a PDF.</li>
           </ol>
-          <p>Camera previews are mirrored for a natural, selfie-like view. Calibration keeps the detected camera coordinates aligned behind the scenes, so the labels and controls remain readable.</p>
+          <p>Camera previews are mirrored for a natural, selfie-like view. Calibration keeps detected camera coordinates aligned behind the scenes, so the labels and controls remain readable.</p>
         </section>
       )}
     </dialog>
