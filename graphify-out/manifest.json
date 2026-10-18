@@ -1,0 +1,326 @@
+{
+  ".claude/launch.json": {
+    "mtime": 1792250242.7245126,
+    "seen": 1792259809.9950287,
+    "ast_hash": "9ea04e02de941ee4c77eb58ad5cb5226",
+    "semantic_hash": ""
+  },
+  "inkless/.oxlintrc.json": {
+    "mtime": 1792242076.8724568,
+    "seen": 1792259809.9950523,
+    "ast_hash": "1f0703525c59e961c2b7f20e78aa1cd4",
+    "semantic_hash": ""
+  },
+  "inkless/.vscode/extensions.json": {
+    "mtime": 1792249963.1225774,
+    "seen": 1792259809.9950573,
+    "ast_hash": "b4fe65422789c169a6e60ad8eeb1d8c6",
+    "semantic_hash": ""
+  },
+  "inkless/package.json": {
+    "mtime": 1792258505.7764647,
+    "seen": 1792259809.99506,
+    "ast_hash": "6d3c8ea7afd98f3f0eb2c849af344cb0",
+    "semantic_hash": ""
+  },
+  "inkless/src/App.tsx": {
+    "mtime": 1792266385.500596,
+    "seen": 1792266498.0031867,
+    "ast_hash": "54401c9b9f16f9c2a3da45f930a7d01b",
+    "semantic_hash": ""
+  },
+  "inkless/src/components/DrawingCanvas.tsx": {
+    "mtime": 1792264781.3409965,
+    "seen": 1792264983.3771536,
+    "ast_hash": "147c3d322b53659ce6ce9ad70e187f1a",
+    "semantic_hash": ""
+  },
+  "inkless/src/components/Home.tsx": {
+    "mtime": 1792269196.6206958,
+    "seen": 1792269276.4896224,
+    "ast_hash": "dc08dfc09f2935aa45ee85d5b651c9e5",
+    "semantic_hash": ""
+  },
+  "inkless/src/components/SignIn.tsx": {
+    "mtime": 1792250140.7937176,
+    "seen": 1792259809.995071,
+    "ast_hash": "64ea68422b0474b729057b7436c73de0",
+    "semantic_hash": ""
+  },
+  "inkless/src/components/StatusBar.tsx": {
+    "mtime": 1792242076.9604106,
+    "seen": 1792259809.9950757,
+    "ast_hash": "537e46b947ff0503fd4e8c37306147e1",
+    "semantic_hash": ""
+  },
+  "inkless/src/components/Toolbar.tsx": {
+    "mtime": 1792266392.0933857,
+    "seen": 1792266498.0031972,
+    "ast_hash": "ad078fd068fd6b44f1f87b8f6df49618",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/strokes.test.ts": {
+    "mtime": 1792260091.5626683,
+    "seen": 1792262285.134603,
+    "ast_hash": "161da86a4c74241ef7737c8333d9a1c7",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/strokes.ts": {
+    "mtime": 1792260067.9767144,
+    "seen": 1792262285.134604,
+    "ast_hash": "919d912b615098242da0cd96c5f35985",
+    "semantic_hash": ""
+  },
+  "inkless/src/main.cpp": {
+    "mtime": 1792249963.1832716,
+    "seen": 1792259809.9950874,
+    "ast_hash": "89a813ad8c30c9d0a4c14177b68f50c9",
+    "semantic_hash": ""
+  },
+  "inkless/src/main.tsx": {
+    "mtime": 1792242076.9812496,
+    "seen": 1792259809.995089,
+    "ast_hash": "df3369963799e47ef5a77cdca932abf0",
+    "semantic_hash": ""
+  },
+  "inkless/src/types.ts": {
+    "mtime": 1792260067.9747143,
+    "seen": 1792262285.134607,
+    "ast_hash": "1d6b802d7dd811ec4dc7379a56ff4199",
+    "semantic_hash": ""
+  },
+  "inkless/tsconfig.app.json": {
+    "mtime": 1792242076.993716,
+    "seen": 1792259809.995096,
+    "ast_hash": "e4f83bdfdf660f5e5364945e14291d70",
+    "semantic_hash": ""
+  },
+  "inkless/tsconfig.json": {
+    "mtime": 1792242076.9982023,
+    "seen": 1792259809.9950979,
+    "ast_hash": "852c3a5df14a4b43ac28e9554ebedf4a",
+    "semantic_hash": ""
+  },
+  "inkless/tsconfig.node.json": {
+    "mtime": 1792242077.0015697,
+    "seen": 1792259809.9951,
+    "ast_hash": "74cde0261ad0a13045ca0a05ab1542ae",
+    "semantic_hash": ""
+  },
+  "inkless/vite.config.ts": {
+    "mtime": 1792242077.0072331,
+    "seen": 1792259809.9951046,
+    "ast_hash": "9331e7d7740bf0286a7f5666477715da",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1792249962.8265736,
+    "seen": 1792259809.9951062,
+    "ast_hash": "7144c633c373c854731b8106f46224bb",
+    "semantic_hash": ""
+  },
+  "inkless/README.md": {
+    "mtime": 1792242076.8784604,
+    "seen": 1792259809.9951081,
+    "ast_hash": "f549ed0fd8cc044add21bea9dea6f526",
+    "semantic_hash": ""
+  },
+  "inkless/index.html": {
+    "mtime": 1792267597.8096628,
+    "seen": 1792267755.8788729,
+    "ast_hash": "36c79e912f79a9485bba1ed12e3bf071",
+    "semantic_hash": ""
+  },
+  "inkless/public/favicon.svg": {
+    "mtime": 1792242076.9141066,
+    "seen": 1792259809.9951127,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": ""
+  },
+  "inkless/public/icons.svg": {
+    "mtime": 1792242076.92169,
+    "seen": 1792259809.9951148,
+    "ast_hash": "21c7473c592c67dc87223d49892c8f0a",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/avatar.png": {
+    "mtime": 1792250087.7996984,
+    "seen": 1792259809.9951167,
+    "ast_hash": "fa4553a29f74be2381a8a063955586fc",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/dot.svg": {
+    "mtime": 1792250090.1846347,
+    "seen": 1792259809.9951186,
+    "ast_hash": "aeb107b72812d8fca322424c96e1f767",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/eraser.png": {
+    "mtime": 1792260054.5261714,
+    "seen": 1792262285.1346216,
+    "ast_hash": "eabe2fc69e0c57f50d4d3a79f3b6432c",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/folder.png": {
+    "mtime": 1792250088.5087895,
+    "seen": 1792259809.995122,
+    "ast_hash": "37c293f77e942dd8175d943a793330cb",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/google.png": {
+    "mtime": 1792250089.567771,
+    "seen": 1792259809.9951239,
+    "ast_hash": "786eb9d7b505b8a59390bf7e6260c4f3",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/hero.png": {
+    "mtime": 1792242076.9393725,
+    "seen": 1792259809.995126,
+    "ast_hash": "aead493361b27e7510691c5d7072dfc1",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/list.png": {
+    "mtime": 1792250088.1319647,
+    "seen": 1792259809.99513,
+    "ast_hash": "684e8cface79d6bd2ff8a5c3f10df965",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/logo.png": {
+    "mtime": 1792250088.8293695,
+    "seen": 1792259809.995132,
+    "ast_hash": "0a1a82457e0982450fa1eb0f063ca592",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/microsoft.png": {
+    "mtime": 1792250089.8786397,
+    "seen": 1792259809.9951339,
+    "ast_hash": "7902953d7d67c1cc89aa538695c0a623",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/more.png": {
+    "mtime": 1792250087.1001513,
+    "seen": 1792259809.9951355,
+    "ast_hash": "3a9ec256f7dea4aa27fd94f85e163172",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/pen.png": {
+    "mtime": 1792260053.4688485,
+    "seen": 1792262285.1346297,
+    "ast_hash": "37c23942bf6f6e2abdf963d0f0143392",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/plus-large.svg": {
+    "mtime": 1792267474.9807653,
+    "seen": 1792267755.878902,
+    "ast_hash": "85aa042dae2fbbe7d9df47acb398e92f",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/react.svg": {
+    "mtime": 1792242076.9419036,
+    "seen": 1792259809.9951408,
+    "ast_hash": "f0402b67b6ce880f65666bb49e841696",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/settings.png": {
+    "mtime": 1792250087.5107062,
+    "seen": 1792259809.9951425,
+    "ast_hash": "bb74a95fa27b438fe9d6c4db0e14e7ee",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/vite.svg": {
+    "mtime": 1792242076.9472504,
+    "seen": 1792259809.9951444,
+    "ast_hash": "6d5180a782d64c8cf51ba01c2a2184d8",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/canvasImage.ts": {
+    "mtime": 1792264735.8793533,
+    "seen": 1792264983.3771653,
+    "ast_hash": "9d61e5d6ee1369aee0b9f6d194683df0",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/projects.test.ts": {
+    "mtime": 1792264743.1591108,
+    "seen": 1792264983.3771718,
+    "ast_hash": "25a4b5e0a334e114ddd7bfec93b2207e",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/projects.ts": {
+    "mtime": 1792264735.8783534,
+    "seen": 1792264983.3771734,
+    "ast_hash": "d8af5dc64489055b362353ca7af994be",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/document.png": {
+    "mtime": 1792260054.8121526,
+    "seen": 1792262285.1346195,
+    "ast_hash": "8bb05babd2d80edabc5116011b9bea8b",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/redo.png": {
+    "mtime": 1792260054.187905,
+    "seen": 1792262285.134633,
+    "ast_hash": "e83711485700b03c8f539e5b24826007",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/spinner.png": {
+    "mtime": 1792260055.160367,
+    "seen": 1792262285.1346347,
+    "ast_hash": "10a235f87507f86a91f917199d003be3",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/undo.png": {
+    "mtime": 1792260053.7935333,
+    "seen": 1792262285.1346357,
+    "ast_hash": "d3c9ad109e3f4e41ad818a6d707e6014",
+    "semantic_hash": ""
+  },
+  "inkless/src/components/AskDialog.tsx": {
+    "mtime": 1792263899.0840216,
+    "seen": 1792264162.8028278,
+    "ast_hash": "fb4ec4b5cf36656c22dab6c08319ea58",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/draw.ts": {
+    "mtime": 1792263845.9609857,
+    "seen": 1792264162.8028357,
+    "ast_hash": "18a49814ec791a4d5ebeba28893f288b",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/pdf.test.ts": {
+    "mtime": 1792263880.2509987,
+    "seen": 1792264162.8028367,
+    "ast_hash": "f6ecc64ba0659d7cba4081ce0a508d08",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/pdf.ts": {
+    "mtime": 1792263880.0027828,
+    "seen": 1792264162.8028376,
+    "ast_hash": "1e4fe21b492312052ba9978d6c9ba1a6",
+    "semantic_hash": ""
+  },
+  "inkless/src/components/PageView.tsx": {
+    "mtime": 1792264767.972328,
+    "seen": 1792264983.3771577,
+    "ast_hash": "d42543042b433cbc971ecf4cb3eff9cd",
+    "semantic_hash": ""
+  },
+  "inkless/src/lib/src/lib/useCamera.ts": {
+    "mtime": 1792264360.4449716,
+    "seen": 1792264983.3771753,
+    "ast_hash": "95bf570778accd94a3d07c7c54b18112",
+    "semantic_hash": ""
+  },
+  "inkless/src/components/SettingsDialog.tsx": {
+    "mtime": 1792266462.1194403,
+    "seen": 1792266498.0031936,
+    "ast_hash": "2d3c0fde08743658f764352d039695f6",
+    "semantic_hash": ""
+  },
+  "inkless/src/assets/menu.svg": {
+    "mtime": 1792269169.3995636,
+    "seen": 1792269276.4896662,
+    "ast_hash": "24d16a9096c64a8e7629630aa98aa449",
+    "semantic_hash": ""
+  }
+}

@@ -19,6 +19,10 @@ import SignIn from "./components/SignIn";
 import Home from "./components/Home";
 import AskDialog, { type Ask } from "./components/AskDialog";
 import SettingsDialog from "./components/SettingsDialog";
+import CalibrationOverlay from "./components/CalibrationOverlay";
+import { useCamera } from "./lib/src/lib/useCamera";
+import type { Homography } from "./lib/homography";
+import { useHandTracking } from "./lib/useHandTracking";
 import "./styles.css";
 
 const placeKey = (p: Place) => `${p.projectId ?? ""}|${p.folderId ?? ""}`;
@@ -46,6 +50,9 @@ export default function App() {
   const [ask, setAsk] = useState<Ask | null>(null); // the one open dialog, if any
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(true);
+  const camera = useCamera();
+  const [homography, setHomography] = useState<Homography | null>(null);
+  const [fingerTracking, setFingerTracking] = useState(false);
   const importInput = useRef<HTMLInputElement>(null);
 
   const doc = store.docs.find((d) => d.id === docId);
@@ -75,6 +82,12 @@ export default function App() {
     },
     [thickness, tool, color, penOn]
   );
+  const hand = useHandTracking({
+    videoRef: camera.videoRef,
+    homography,
+    enabled: fingerTracking && camera.status === "ready",
+    onSample,
+  });
 
   const tell = (title: string, message: string) => setAsk({ title, message, confirm: "OK", cancel: null, onOk: () => {} });
 
@@ -277,8 +290,21 @@ export default function App() {
         <section className="camera-panel" aria-label="Camera view">
           <h2>Camera view</h2>
           <button className="camera-close" aria-label="Hide camera view" onClick={() => setCameraOpen(false)}>x</button>
-          {/* TODO (Person 1): <CameraView /> goes here */}
-          {/* TODO (Person 3): <CalibrationOverlay /> goes on top of it */}
+          <CalibrationOverlay
+            videoRef={camera.videoRef}
+            cameraStatus={camera.status}
+            cameraError={camera.error}
+            calibrated={homography !== null}
+            onCalibrated={setHomography}
+            cameras={camera.devices}
+            selectedCamera={camera.selectedDeviceId}
+            onSelectCamera={camera.setSelectedDeviceId}
+            onStartCamera={camera.start}
+            fingerTracking={fingerTracking}
+            handStatus={hand.status}
+            handError={hand.error}
+            onFingerTracking={setFingerTracking}
+          />
         </section>
       ) : (
         <button className="camera-tab" onClick={() => setCameraOpen(true)}>Camera view</button>
