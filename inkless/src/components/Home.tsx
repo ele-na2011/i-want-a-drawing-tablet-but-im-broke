@@ -19,12 +19,13 @@ interface Props {
   onNewDoc: () => void;
   onNewProject: () => void;
   onNewFolder: () => void;
+  onCalibrate: () => void;
   onOpenDoc: (id: string) => void;
   onDocMenu: (id: string) => void;
   onSettings: () => void;
 }
 
-export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onOpenDoc, onDocMenu, onSettings }: Props) {
+export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onCalibrate, onOpenDoc, onDocMenu, onSettings }: Props) {
   const [collapsed, setCollapsed] = useState(false); // Figma "MacBook Air - 7": sidebar folded to a 60px rail
   const docs = docsIn(store, place);
   const heading =
@@ -67,8 +68,7 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
                 <img src={folderIcon} alt="" />New folder
               </button>
             </li>
-            {/* TODO (Person 3): calibration flow */}
-            <li><button><img src={spinner} alt="" />Calibrate</button></li>
+            <li><button onClick={onCalibrate}><img src={spinner} alt="" />Calibrate</button></li>
           </ul>
 
           <div className="workspaces">
