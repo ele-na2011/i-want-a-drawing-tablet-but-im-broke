@@ -1,7 +1,7 @@
 # Inkless
 
 Inkless is a Vite/React drawing app that supports camera calibration, green-LED
-pen tracking, and optional index-finger tracking.
+pen tracking with two cameras.
 
 ## Local development
 
