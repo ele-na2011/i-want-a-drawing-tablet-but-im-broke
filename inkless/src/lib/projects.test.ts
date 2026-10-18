@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addDoc, addFolder, addProject, allPlaces, docsIn, loadStore, PAGE, saveStore, toPage, updateDoc, type Store } from "./projects.ts";
+import { addDoc, addFolder, addProject, allPlaces, docsIn, loadStore, PAGE, removeFolder, removeProject, saveStore, toPage, updateDoc, type Store } from "./projects.ts";
 
 const memory = (init: Record<string, string> = {}) => {
   const m = new Map(Object.entries(init));
@@ -73,4 +73,18 @@ test("documents from the old full-screen board keep their shape on the page", ()
   assert.deepEqual(d.strokes[0].points[0], { x: 0.5, y: 0.5, t: 0 }); // ...so the bottom edge lands halfway down
   assert.equal(d.thumbnail, null);
   assert.equal(toPage(d), d); // already a page: untouched
+});
+
+test("deleting a folder takes its subfolders and their documents with it", () => {
+  const { store, outreach } = sample();
+  const next = removeFolder(store, outreach.id);
+  assert.deepEqual(next.folders, []);
+  assert.deepEqual(next.docs.map((d) => d.name).sort(), ["Plan", "Shopping list"]);
+});
+
+test("deleting a project leaves loose documents alone", () => {
+  const { store, robotics } = sample();
+  const next = removeProject(store, robotics.id);
+  assert.deepEqual([next.projects, next.folders], [[], []]);
+  assert.deepEqual(next.docs.map((d) => d.name), ["Shopping list"]);
 });

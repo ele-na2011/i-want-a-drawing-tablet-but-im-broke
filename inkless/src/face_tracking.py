@@ -1,5 +1,9 @@
 import cv2
 import argparse
+from pathlib import Path
+
+# Training snapshots go to led_images/ at the repo root.
+IMAGE_DIR = Path(__file__).resolve().parents[2] / "led_images"
 
 WINDOW_NAME = "Green LED Tracking"
 DEFAULT_CAMERA_INDICES = (0, 1)
@@ -96,13 +100,17 @@ def main():
         while True:
             previews = []
             detections = []
+            frames = []
+            masks = []
             for camera in cameras:
                 success, frame = camera.read()
                 if not success:
                     print("Could not read one of the cameras.")
                     return 1
                 frame = cv2.flip(frame, 1)
-                detection, _ = detect_green_led(frame)
+                detection, mask = detect_green_led(frame)
+                frames.append(frame)
+                masks.append(mask)
                 preview, status = annotate_frame(frame, detection)
                 cv2.putText(
                     preview,
@@ -158,12 +166,15 @@ def main():
             if key == ord("q"):
                 break
             elif key == ord("m"):
-                cv2.imshow("Detection Mask", mask)
+                for index, mask in zip(camera_indices, masks):
+                    cv2.imshow(f"Detection Mask (camera {index})", mask)
             elif key == ord("s"):
-                count = len(list(IMAGE_DIR.glob("*.jpg")))
-                path = IMAGE_DIR / f"led_{count:04d}.jpg"
-                cv2.imwrite(str(path), frame)
-                print(f"Saved {path}")    
+                IMAGE_DIR.mkdir(exist_ok=True)
+                for frame in frames:
+                    count = len(list(IMAGE_DIR.glob("*.jpg")))
+                    path = IMAGE_DIR / f"led_{count:04d}.jpg"
+                    cv2.imwrite(str(path), frame)
+                    print(f"Saved {path}")
 
             if cv2.getWindowProperty(
                 WINDOW_NAME, cv2.WND_PROP_VISIBLE

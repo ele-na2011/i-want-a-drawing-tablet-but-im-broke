@@ -100,6 +100,31 @@ export function removeDoc(store: Store, id: string): Store {
   return { ...store, docs: store.docs.filter((d) => d.id !== id) };
 }
 
+// Deletes a folder together with every folder and document nested inside it.
+export function removeFolder(store: Store, id: string): Store {
+  const gone = new Set([id]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const f of store.folders) {
+      if (f.parentId && gone.has(f.parentId) && !gone.has(f.id)) { gone.add(f.id); grew = true; }
+    }
+  }
+  return {
+    ...store,
+    folders: store.folders.filter((f) => !gone.has(f.id)),
+    docs: store.docs.filter((d) => !(d.folderId && gone.has(d.folderId))),
+  };
+}
+
+// Deletes a project with all its folders and documents.
+export function removeProject(store: Store, id: string): Store {
+  return {
+    projects: store.projects.filter((p) => p.id !== id),
+    folders: store.folders.filter((f) => f.projectId !== id),
+    docs: store.docs.filter((d) => d.projectId !== id),
+  };
+}
+
 // Documents shown for a sidebar selection, newest first.
 // Nothing selected: every document. A project: everything in it. A folder: just that folder.
 export function docsIn(store: Store, place: Place): Doc[] {

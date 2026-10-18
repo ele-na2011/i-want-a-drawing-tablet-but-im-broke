@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import logo from "../assets/logo.png";
 import menu from "../assets/menu.svg";
 import plus from "../assets/plus-large.svg";
@@ -22,16 +22,18 @@ interface Props {
   onCalibrate: () => void;
   onOpenDoc: (id: string) => void;
   onDocMenu: (id: string) => void;
+  onDeletePlace: (p: Place) => void; // right-click on a project or folder
   onSettings: () => void;
 }
 
-export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onCalibrate, onOpenDoc, onDocMenu, onSettings }: Props) {
+export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onCalibrate, onOpenDoc, onDocMenu, onDeletePlace, onSettings }: Props) {
   const [collapsed, setCollapsed] = useState(false); // Figma "MacBook Air - 7": sidebar folded to a 60px rail
   const docs = docsIn(store, place);
   const heading =
     store.folders.find((f) => f.id === place.folderId)?.name ??
     store.projects.find((p) => p.id === place.projectId)?.name ??
     "Recent";
+  const menuFor = (p: Place) => (e: MouseEvent) => { e.preventDefault(); onDeletePlace(p); };
   const selected = (p: Place) => p.projectId === place.projectId && p.folderId === place.folderId;
 
   // Folders nest, so the tree draws itself one level at a time.
@@ -42,6 +44,7 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
           style={{ paddingLeft: `calc(${32 + depth * 32} * var(--u))` }}
           aria-pressed={selected({ projectId, folderId: f.id })}
           onClick={() => onPlace({ projectId, folderId: f.id })}
+          onContextMenu={menuFor({ projectId, folderId: f.id })}
         >
           <img src={depth === 0 ? list : folderIcon} alt="" />{f.name}
         </button>
@@ -83,6 +86,7 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
                 <button
                   className="workspace" aria-pressed={selected({ projectId: p.id, folderId: null })}
                   onClick={() => onPlace({ projectId: p.id, folderId: null })}
+                  onContextMenu={menuFor({ projectId: p.id, folderId: null })}
                 >
                   {p.name}
                 </button>

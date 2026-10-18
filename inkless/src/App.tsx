@@ -5,7 +5,7 @@ import {
   extendStroke, finishStroke, redo, undo,
 } from "./lib/strokes";
 import {
-  addDoc, addFolder, addProject, allPlaces, loadStore, PAGE, removeDoc, saveStore, updateDoc,
+  addDoc, addFolder, addProject, allPlaces, loadStore, PAGE, removeDoc, removeFolder, removeProject, saveStore, updateDoc,
   type Place, type Store,
 } from "./lib/projects";
 import { downloadPdf, readImage, thumbnail } from "./lib/canvasImage";
@@ -220,6 +220,25 @@ export default function App() {
     });
   };
 
+  const deletePlace = (p: Place) => {
+    const name = p.folderId
+      ? store.folders.find((f) => f.id === p.folderId)?.name
+      : store.projects.find((x) => x.id === p.projectId)?.name;
+    const cut = (s: Store) => (p.folderId ? removeFolder(s, p.folderId) : removeProject(s, p.projectId!));
+    const lost = store.docs.length - cut(store).docs.length;
+    setAsk({
+      title: `Delete "${name}"?`,
+      message: `${lost ? `This also deletes the ${lost} document${lost === 1 ? "" : "s"} inside. ` : ""}This can't be undone.`,
+      confirm: "Delete",
+      onOk: () => {
+        const next = cut(storeRef.current);
+        persist(next);
+        // Step out of a place that no longer exists.
+        setPlace((cur) => allPlaces(next).some((o) => placeKey(o.place) === placeKey(cur)) ? cur : { projectId: null, folderId: null });
+      },
+    });
+  };
+
   const goHome = async () => {
     if (dirty) await handleSave(); // leaving the board saves, so work is never dropped silently
     setView("home");
@@ -236,7 +255,7 @@ export default function App() {
           store={store} place={place} onPlace={setPlace}
           onNewDoc={newDoc} onNewProject={newProject} onNewFolder={newFolder}
           onCalibrate={() => setCalibrationOpen(true)}
-          onOpenDoc={openDoc} onDocMenu={docMenu} onSettings={() => setSettingsOpen(true)}
+          onOpenDoc={openDoc} onDocMenu={docMenu} onDeletePlace={deletePlace} onSettings={() => setSettingsOpen(true)}
         />
         {calibrationOpen && (
           <section className="camera-panel hub-calibration-panel" aria-label="Workspace calibration">
