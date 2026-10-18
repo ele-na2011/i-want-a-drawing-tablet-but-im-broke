@@ -71,7 +71,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
       reportStatus("led-not-found");
     };
 
-    // One session and buffer per camera, so both cameras run at once instead of one after the other.
+    // A frame buffer per camera, sharing one model session.
     const makeFinder = (session: ort.InferenceSession) => {
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = INPUT;
@@ -95,7 +95,10 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
       const side = sideVideoRef.current;
       const hasSide = !!side?.srcObject && side.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
       // Run even before z is calibrated, so the calibration buttons can read where the LED is.
-      const [led, sideLed] = await Promise.all([findTop!(video), hasSide ? findSide!(side) : null]);
+      // One after the other: onnxruntime-web shares one wasm heap, and two sessions or overlapping runs crash it
+      // ("memory access out of bounds").
+      const led = await findTop!(video);
+      const sideLed = hasSide ? await findSide!(side) : null;
       if (cancelled) return;
       const now = performance.now();
       setPoint(led && { x: led.x, y: led.y }); // shown on the camera preview, even outside the page
@@ -161,13 +164,13 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
               : `The GPU couldn't run the LED model (${reason instanceof Error ? reason.message : String(reason)}), so pen tracking runs on the CPU and will lag.`);
             return ort.InferenceSession.create(MODEL_URL, { executionProviders: ["wasm"] });
           });
-        sessions = [await load(), await load()];
+        sessions = [await load()];
         if (cancelled) {
           sessions.forEach((s) => s.release());
           return;
         }
         findTop = makeFinder(sessions[0]);
-        findSide = makeFinder(sessions[1]);
+        findSide = makeFinder(sessions[0]);
         track();
       } catch (reason) {
         if (!cancelled) {
