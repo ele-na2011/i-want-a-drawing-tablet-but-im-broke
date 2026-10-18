@@ -127,8 +127,7 @@ button { font: inherit; color: inherit; }
 .recent h2 { margin: 0 0 calc(24 * var(--u)); font-family: var(--font-display); font-size: calc(28 * var(--u)); font-weight: 400; line-height: calc(57 * var(--u)); }
 /* No visible scrollbar (Figma lets the 4th card run off the edge); still scrolls with shift+wheel, touch and Tab.
    No bottom padding, so cards + names end inside an 832px window and the page never scrolls. */
-.recent-row { display: flex; gap: calc(37 * var(--u)); list-style: none; margin: 0; padding: 0 calc(53 * var(--u)) 0 0; overflow-x: auto; scrollbar-width: none; }
-.recent-card { flex: 0 0 calc(254 * var(--u)); }
+.recent-row { display: flex; flex-wrap: wrap; gap: calc(40 * var(--u)) calc(37 * var(--u)); list-style: none; margin: 0; padding: 0 calc(53 * var(--u)) calc(80 * var(--u)) 0; }
 .recent-page {
   position: relative; height: calc(319 * var(--u)); border-radius: 4px;
   border: calc(8 * var(--u)) solid rgba(168, 181, 138, 0.39); background: rgba(255, 255, 255, 0.83);
@@ -141,6 +140,7 @@ button { font: inherit; color: inherit; }
 .recent-more:hover { background: rgba(169, 183, 198, 0.4); }
 .recent-more img { width: calc(15 * var(--u)); height: calc(15 * var(--u)); }
 .recent-name { display: block; margin-top: calc(8 * var(--u)); font-size: calc(14 * var(--u)); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.recent-edited { display: block; margin-top: calc(2 * var(--u)); font-size: calc(12 * var(--u)); color: rgba(45, 58, 71, 0.7); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .recent-empty { margin: 0; font-size: calc(16 * var(--u)); color: var(--midnight-lagoon); }
 
 /* ---------- Sign-in (Figma "MacBook Air - 2") ---------- */
@@ -224,8 +224,7 @@ button { font: inherit; color: inherit; }
 .camera-close { position: absolute; top: 3px; right: 8px; width: 25px; height: 34px; font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: #fffcfc; }
 .camera-close:hover { color: #000; }
 .camera-tab { position: absolute; right: 29px; bottom: 29px; padding: 8px 16px; background: var(--tint-strong); font-family: var(--font-display); font-size: 1rem; }
-<<<<<<< HEAD
-.camera-panel h2 { margin: 0; font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; line-height: 1.4; }
+.camera-panel h2 { margin: 0; font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; line-height: 35px; }
 .camera-content { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
 .camera-preview { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--border); background: #27313a; cursor: crosshair; touch-action: none; }
 .camera-preview video { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -241,9 +240,6 @@ button { font: inherit; color: inherit; }
 .tracking-message { margin: 0; font-size: 0.7rem; }
 .sensor-card { display: grid; gap: 1px; padding: 6px 8px; border-radius: 5px; background: rgba(255, 255, 255, 0.5); font-size: 0.72rem; }
 .sensor-card small { opacity: 0.7; font-size: 0.65rem; }
-=======
-.camera-panel h2 { margin: 0; font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; line-height: 35px; }
->>>>>>> d2b71669aede524fcd53e9445f831dfc6648bb23
 
 /* Status: also add an icon/text change per state, not just color */
 .status { white-space: nowrap; padding: var(--space-1) var(--space-3); border: 1px solid var(--border); border-radius: 999px; font-size: 0.875rem; background: var(--bg); }

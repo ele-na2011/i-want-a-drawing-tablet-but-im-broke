@@ -23,7 +23,10 @@ interface Props {
   onDocMenu: (id: string) => void;
   onSettings: () => void;
 }
-
+const formatEdited = (t: number) =>
+  Number.isFinite(t)
+    ? new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+    : "unknown";
 export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onOpenDoc, onDocMenu, onSettings }: Props) {
   const [collapsed, setCollapsed] = useState(false); // Figma "MacBook Air - 7": sidebar folded to a 60px rail
   const docs = docsIn(store, place);
@@ -129,6 +132,7 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
                     </button>
                   </div>
                   <span className="recent-name">{d.name}</span>
+<span className="recent-edited">Last edited {formatEdited(d.updatedAt)}</span>
                 </li>
               ))}
             </ul>
