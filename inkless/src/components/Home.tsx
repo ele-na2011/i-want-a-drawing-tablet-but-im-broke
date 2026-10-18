@@ -9,7 +9,12 @@ import spinner from "../assets/spinner.png";
 import settings from "../assets/settings.png";
 import avatar from "../assets/avatar.png";
 import more from "../assets/more.png";
-import { childFolders, docsIn, type Place, type Store } from "../lib/projects";
+import {
+  childFolders,
+  docsIn,
+  type Place,
+  type Store,
+} from "../lib/projects";
 
 interface Props {
   store: Store;
@@ -21,33 +26,69 @@ interface Props {
   onCalibrate: () => void;
   onOpenDoc: (id: string) => void;
   onDocMenu: (id: string) => void;
-  onDeletePlace: (p: Place) => void; // right-click on a project or folder
+  onDeletePlace: (p: Place) => void;
   onSettings: () => void;
   firstName: string;
 }
 
-export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onCalibrate, onOpenDoc, onDocMenu, onDeletePlace, onSettings, firstName }: Props) {
-  const [collapsed, setCollapsed] = useState(false); // Figma "MacBook Air - 7": sidebar folded to a 60px rail
+export default function Home({
+  store,
+  place,
+  onPlace,
+  onNewDoc,
+  onNewProject,
+  onNewFolder,
+  onCalibrate,
+  onOpenDoc,
+  onDocMenu,
+  onDeletePlace,
+  onSettings,
+  firstName,
+}: Props) {
+  const [collapsed, setCollapsed] = useState(false);
   const docs = docsIn(store, place);
+
   const heading =
     store.folders.find((f) => f.id === place.folderId)?.name ??
     store.projects.find((p) => p.id === place.projectId)?.name ??
     "Recent";
-  const menuFor = (p: Place) => (e: MouseEvent) => { e.preventDefault(); onDeletePlace(p); };
-  const selected = (p: Place) => p.projectId === place.projectId && p.folderId === place.folderId;
 
-  // Folders nest, so the tree draws itself one level at a time.
-  const tree = (projectId: string, parentId: string | null, depth: number) =>
+  const menuFor = (p: Place) => (e: MouseEvent) => {
+    e.preventDefault();
+    onDeletePlace(p);
+  };
+
+  const selected = (p: Place) =>
+    p.projectId === place.projectId &&
+    p.folderId === place.folderId;
+
+  const tree = (
+    projectId: string,
+    parentId: string | null,
+    depth: number
+  ) =>
     childFolders(store, projectId, parentId).map((f) => (
       <li key={f.id}>
         <button
-          style={{ paddingLeft: `calc(${32 + depth * 32} * var(--u))` }}
-          aria-pressed={selected({ projectId, folderId: f.id })}
-          onClick={() => onPlace({ projectId, folderId: f.id })}
-          onContextMenu={menuFor({ projectId, folderId: f.id })}
+          style={{
+            paddingLeft: `calc(${32 + depth * 32} * var(--u))`,
+          }}
+          aria-pressed={selected({
+            projectId,
+            folderId: f.id,
+          })}
+          onClick={() =>
+            onPlace({ projectId, folderId: f.id })
+          }
+          onContextMenu={menuFor({
+            projectId,
+            folderId: f.id,
+          })}
         >
-          <img src={depth === 0 ? list : folderIcon} alt="" />{f.name}
+          <img src={depth === 0 ? list : folderIcon} alt="" />
+          {f.name}
         </button>
+
         <ul>{tree(projectId, f.id, depth + 1)}</ul>
       </li>
     ));
@@ -56,41 +97,91 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
     <div className={`home${collapsed ? " sidebar-collapsed" : ""}`}>
       <nav className="sidebar">
         <button
-          className="sidebar-toggle" aria-expanded={!collapsed}
-          aria-label={collapsed ? "Show sidebar" : "Hide sidebar"} onClick={() => setCollapsed(!collapsed)}
+          className="sidebar-toggle"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Show sidebar" : "Hide sidebar"}
+          onClick={() => setCollapsed(!collapsed)}
         >
           <img src={menu} alt="" />
         </button>
+
         <div className="sidebar-body" inert={collapsed}>
-          <div className="logo logo-small"><img src={logo} alt="inkless" /></div>
+          <div className="logo logo-small">
+            <img src={logo} alt="inkless" />
+          </div>
+
           <ul className="sidebar-nav">
-            <li><button onClick={onNewDoc}><img src={documentIcon} alt="" />New document</button></li>
-            <li><button onClick={onNewProject}><img src={list} alt="" />New project</button></li>
             <li>
-              <button onClick={onNewFolder} disabled={!place.projectId} title={place.projectId ? undefined : "Pick a project first"}>
-                <img src={folderIcon} alt="" />New folder
+              <button onClick={onNewDoc}>
+                <img src={documentIcon} alt="" />
+                New document
               </button>
             </li>
-            <li><button onClick={onCalibrate}><img src={spinner} alt="" />Calibrate</button></li>
+
+            <li>
+              <button onClick={onNewProject}>
+                <img src={list} alt="" />
+                New project
+              </button>
+            </li>
+
+            <li>
+              <button
+                onClick={onNewFolder}
+                disabled={!place.projectId}
+                title={
+                  place.projectId ? undefined : "Pick a project first"
+                }
+              >
+                <img src={folderIcon} alt="" />
+                New folder
+              </button>
+            </li>
+
+            <li>
+              <button onClick={onCalibrate}>
+                <img src={spinner} alt="" />
+                Calibrate
+              </button>
+            </li>
           </ul>
 
           <div className="workspaces">
             <button
-              className="workspace" aria-pressed={selected({ projectId: null, folderId: null })}
-              onClick={() => onPlace({ projectId: null, folderId: null })}
+              className="workspace"
+              aria-pressed={selected({
+                projectId: null,
+                folderId: null,
+              })}
+              onClick={() =>
+                onPlace({ projectId: null, folderId: null })
+              }
             >
               All documents
             </button>
+
             {store.projects.map((p) => (
               <div key={p.id}>
                 <button
-                  className="workspace" aria-pressed={selected({ projectId: p.id, folderId: null })}
-                  onClick={() => onPlace({ projectId: p.id, folderId: null })}
-                  onContextMenu={menuFor({ projectId: p.id, folderId: null })}
+                  className="workspace"
+                  aria-pressed={selected({
+                    projectId: p.id,
+                    folderId: null,
+                  })}
+                  onClick={() =>
+                    onPlace({ projectId: p.id, folderId: null })
+                  }
+                  onContextMenu={menuFor({
+                    projectId: p.id,
+                    folderId: null,
+                  })}
                 >
                   {p.name}
                 </button>
-                <ul className="folder-tree">{tree(p.id, null, 0)}</ul>
+
+                <ul className="folder-tree">
+                  {tree(p.id, null, 0)}
+                </ul>
               </div>
             ))}
           </div>
@@ -103,10 +194,16 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
       </nav>
 
       <main className="home-main">
-        <button className="avatar" onClick={onSettings} aria-label="Account settings">
-          <img src={avatar} alt="" />
+        <button
+          className="avatar"
+          onClick={onSettings}
+          aria-label="Account settings"
+        >
+          <img src={avatar} referrerPolicy="no-referrer" alt="" />
         </button>
+
         <h1 className="greeting">Hey, {firstName}!</h1>
+
         <button className="new-project" onClick={onNewProject}>
           Start a new project
           <img src={plus} alt="" />
@@ -114,6 +211,7 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
 
         <section className="recent">
           <h2>{heading}</h2>
+
           {docs.length === 0 ? (
             <p className="recent-empty">
               {store.docs.length === 0
@@ -125,13 +223,25 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
               {docs.map((d) => (
                 <li key={d.id} className="recent-card">
                   <div className="recent-page">
-                    <button className="recent-open" onClick={() => onOpenDoc(d.id)} aria-label={`Open ${d.name}`}>
-                      {d.thumbnail && <img src={d.thumbnail} alt="" />}
+                    <button
+                      className="recent-open"
+                      onClick={() => onOpenDoc(d.id)}
+                      aria-label={`Open ${d.name}`}
+                    >
+                      {d.thumbnail && (
+                        <img src={d.thumbnail} alt="" />
+                      )}
                     </button>
-                    <button className="recent-more" aria-label={`Options for ${d.name}`} onClick={() => onDocMenu(d.id)}>
+
+                    <button
+                      className="recent-more"
+                      aria-label={`Options for ${d.name}`}
+                      onClick={() => onDocMenu(d.id)}
+                    >
                       <img src={more} alt="" />
                     </button>
                   </div>
+
                   <span className="recent-name">{d.name}</span>
                 </li>
               ))}
