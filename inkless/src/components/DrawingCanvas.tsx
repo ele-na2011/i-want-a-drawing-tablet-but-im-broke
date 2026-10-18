@@ -14,7 +14,7 @@ interface Props {
 }
 
 // Pixels per page px: at least 2 so the page stays sharp when zoomed in or on high-density screens.
-const DENSITY = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
+const DENSITY = 2; // Keep live drawing responsive even on very high-density displays.
 
 // UI OWNER: this is the drawing surface, one fixed-size page. PageView moves and zooms it.
 export default function DrawingCanvas({ strokes, onSample, cursorColor, cursorSize, background, penPoint }: Props) {
@@ -22,12 +22,27 @@ export default function DrawingCanvas({ strokes, onSample, cursorColor, cursorSi
   const down = useRef(false);
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
 
-  // Redraw everything whenever strokes change.
+  // Cache completed strokes; only the last (possibly active) stroke is rebuilt per sample.
+  const cache = useRef<{ canvas: HTMLCanvasElement; prefix: Stroke[] } | null>(null);
   useEffect(() => {
     const c = ref.current!;
     const ctx = c.getContext("2d")!;
+    if (!cache.current) {
+      const canvas = document.createElement("canvas");
+      canvas.width = c.width; canvas.height = c.height;
+      cache.current = { canvas, prefix: [] };
+    }
+    const prefix = strokes.slice(0, -1);
+    const cached = cache.current;
+    if (prefix.length !== cached.prefix.length || prefix.some((s, i) => s !== cached.prefix[i])) {
+      const base = cached.canvas.getContext("2d")!;
+      base.clearRect(0, 0, c.width, c.height);
+      drawStrokes(base, prefix, c.width, c.height, DENSITY);
+      cached.prefix = prefix;
+    }
     ctx.clearRect(0, 0, c.width, c.height);
-    drawStrokes(ctx, strokes, c.width, c.height, DENSITY);
+    ctx.drawImage(cached.canvas, 0, 0);
+    if (strokes.length) drawStrokes(ctx, [strokes[strokes.length - 1]], c.width, c.height, DENSITY);
   }, [strokes]);
 
   // Mouse/touch input so you can build and test without the webcam.

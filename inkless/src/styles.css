@@ -12,6 +12,14 @@
   src: url("https://cdn.jsdelivr.net/npm/font-kopub@1.0.2/fonts/KoPubBatang-Medium.woff") format("woff");
 }
 
+.camera-preview video,
+.camera-secondary-feed video {
+  filter: brightness(0.6);
+}
+.camera-preview video,
+.camera-secondary-feed video {
+  filter: brightness(0.35) !important;
+}
 :root {
   /* --- Your palette: change these and the whole app updates --- */
   --vanilla-cream: #fff7e6;
@@ -317,3 +325,25 @@ button { font: inherit; color: inherit; }
 .settings-guide ol { margin: 0; padding-left: calc(22 * var(--u)); line-height: 1.5; }
 .settings-guide li { margin-bottom: calc(10 * var(--u)); }
 .settings-guide strong { font-weight: 700; }
+
+/* LED debug marker: square around the detected center, on both cameras. */
+.led-marker {
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  color: #39ff6a;
+  font: bold 10px monospace;
+  line-height: 12px;
+  text-indent: 30px;
+  white-space: nowrap;
+  z-index: 3;
+}
+.calibration-hint { pointer-events: none; }
+
+.beautify-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.beautify-tools button { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; }
+.beautify-tools button[aria-pressed="true"] { background: #30424f; color: #fff; }
+.beautify-tools label { display: flex; align-items: center; gap: 6px; }
+.beautify-tools input { width: 90px; }
+.beautify-tools small { flex-basis: 100%; font-size: 11px; }
+.toolbar { flex-wrap: wrap; }
