@@ -23,6 +23,7 @@ import CalibrationOverlay from "./components/CalibrationOverlay";
 import { useCamera } from "./lib/src/lib/useCamera";
 import type { Homography } from "./lib/homography";
 import { useHandTracking } from "./lib/useHandTracking";
+import { useLedTracking } from "./lib/useLedTracking";
 import "./styles.css";
 
 const placeKey = (p: Place) => `${p.projectId ?? ""}|${p.folderId ?? ""}`;
@@ -53,7 +54,7 @@ export default function App() {
   const [cameraOpen, setCameraOpen] = useState(true);
   const camera = useCamera();
   const [homography, setHomography] = useState<Homography | null>(null);
-  const [fingerTracking, setFingerTracking] = useState(false);
+  const [tracking, setTracking] = useState(false); // the pen LED or finger tracker is running
   const [trackingMode, setTrackingMode] = useState<"pen" | "finger">("pen");
   const importInput = useRef<HTMLInputElement>(null);
 
@@ -87,9 +88,16 @@ export default function App() {
   const hand = useHandTracking({
     videoRef: camera.videoRef,
     homography,
-    enabled: trackingMode === "finger" && fingerTracking && camera.status === "ready",
+    enabled: trackingMode === "finger" && tracking && camera.status === "ready",
     onSample,
   });
+  const led = useLedTracking({
+    videoRef: camera.videoRef,
+    homography,
+    enabled: trackingMode === "pen" && tracking && camera.status === "ready",
+    onSample,
+  });
+  const tracker = trackingMode === "pen" ? led : hand;
 
   const tell = (title: string, message: string) => setAsk({ title, message, confirm: "OK", cancel: null, onOk: () => {} });
 
@@ -275,10 +283,10 @@ export default function App() {
               selectedCamera={camera.selectedDeviceId}
               onSelectCamera={camera.setSelectedDeviceId}
               onStartCamera={camera.start}
-              fingerTracking={fingerTracking}
-              handStatus={hand.status}
-              handError={hand.error}
-              onFingerTracking={setFingerTracking}
+              tracking={tracking}
+              trackerStatus={tracker.status}
+              trackerError={tracker.error}
+              onTracking={setTracking}
               trackingMode={trackingMode}
               onTrackingMode={setTrackingMode}
             />
@@ -350,10 +358,10 @@ export default function App() {
             selectedCamera={camera.selectedDeviceId}
             onSelectCamera={camera.setSelectedDeviceId}
             onStartCamera={camera.start}
-            fingerTracking={fingerTracking}
-            handStatus={hand.status}
-            handError={hand.error}
-            onFingerTracking={setFingerTracking}
+            tracking={tracking}
+            trackerStatus={tracker.status}
+            trackerError={tracker.error}
+            onTracking={setTracking}
             trackingMode={trackingMode}
             onTrackingMode={setTrackingMode}
           />

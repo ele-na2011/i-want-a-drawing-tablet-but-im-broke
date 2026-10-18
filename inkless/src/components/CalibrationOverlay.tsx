@@ -4,6 +4,7 @@ import { fuseSensors } from "../lib/sensorFusion";
 import StatusBar from "./StatusBar";
 import type { TrackingStatus } from "../types";
 import type { HandTrackingStatus } from "../lib/useHandTracking";
+import type { LedTrackingStatus } from "../lib/useLedTracking";
 
 interface Props {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -17,10 +18,10 @@ interface Props {
   selectedCamera: string;
   onSelectCamera: (deviceId: string) => void;
   onStartCamera: (deviceId?: string) => void;
-  fingerTracking: boolean;
-  handStatus: HandTrackingStatus;
-  handError: string | null;
-  onFingerTracking: (enabled: boolean) => void;
+  tracking: boolean;
+  trackerStatus: HandTrackingStatus | LedTrackingStatus; // of the tracker trackingMode picks
+  trackerError: string | null;
+  onTracking: (enabled: boolean) => void;
   trackingMode: "pen" | "finger";
   onTrackingMode: (mode: "pen" | "finger") => void;
 }
@@ -54,13 +55,13 @@ export function previewToVideoPoint(
   };
 }
 
-export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, fingerTracking, handStatus, handError, onFingerTracking, trackingMode, onTrackingMode }: Props) {
+export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode }: Props) {
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([]);
-  const status: TrackingStatus = trackingMode === "finger" && fingerTracking && handStatus === "ready"
+  const status: TrackingStatus = tracking && trackerStatus === "ready"
     ? "drawing"
-    : trackingMode === "finger" && fingerTracking && handStatus === "hand-not-found"
-      ? "hand-not-found"
+    : tracking && (trackerStatus === "hand-not-found" || trackerStatus === "led-not-found")
+      ? trackerStatus
       : calibrated
     ? "tracking"
     : cameraStatus === "ready"
@@ -120,23 +121,26 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
       <div className="tracking-mode" aria-label="Tracking method">
         <strong>Tracking method</strong>
         <div>
-          <button type="button" aria-pressed={trackingMode === "pen"} onClick={() => { onTrackingMode("pen"); onFingerTracking(false); }}>
+          <button type="button" aria-pressed={trackingMode === "pen"} onClick={() => { onTrackingMode("pen"); onTracking(false); }}>
             Pen + green LED
           </button>
-          <button type="button" aria-pressed={trackingMode === "finger"} onClick={() => onTrackingMode("finger")}>
+          <button type="button" aria-pressed={trackingMode === "finger"} onClick={() => { onTrackingMode("finger"); onTracking(false); }}>
             Index finger
           </button>
         </div>
       </div>
-      {trackingMode === "pen" ? (
-        <p className="tracking-message">Pen mode: place the green LED on the pen and keep both cameras aimed at the workspace. Use the desktop LED tracker to send pen position data.</p>
-      ) : calibrated && (
-        <button className="finger-toggle" type="button" aria-pressed={fingerTracking} onClick={() => onFingerTracking(!fingerTracking)}>
-          {fingerTracking ? "Stop finger tracking" : "Track index finger"}
+      {trackingMode === "pen" && !calibrated && (
+        <p className="tracking-message">Pen mode: put the green LED on the pen tip, then calibrate the workspace. The pen draws while the LED is inside the page.</p>
+      )}
+      {calibrated && (
+        <button className="finger-toggle" type="button" aria-pressed={tracking} onClick={() => onTracking(!tracking)}>
+          {trackingMode === "pen"
+            ? tracking ? "Stop pen tracking" : "Track pen LED"
+            : tracking ? "Stop finger tracking" : "Track index finger"}
         </button>
       )}
-      {handStatus === "loading" && <p className="tracking-message">Loading hand model...</p>}
-      {handError && <p className="camera-error">{handError}</p>}
+      {trackerStatus === "loading" && <p className="tracking-message">Loading {trackingMode === "pen" ? "LED" : "hand"} model...</p>}
+      {trackerError && <p className="camera-error">{trackerError}</p>}
       <div className="sensor-card" aria-label="Sensor fusion status">
         <strong>Sensor fusion</strong>
         <span>{sensor.label} · {Math.round(sensor.confidence * 100)}% confidence</span>

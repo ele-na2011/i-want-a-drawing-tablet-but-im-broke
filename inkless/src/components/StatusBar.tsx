@@ -8,6 +8,7 @@ const LABELS: Record<TrackingStatus, string> = {
   tracking: "Tracking pen",
   drawing: "Drawing",
   "hand-not-found": "Hand not found",
+  "led-not-found": "Pen LED not found",
   "manual-mode": "Manual mode",
 };
 

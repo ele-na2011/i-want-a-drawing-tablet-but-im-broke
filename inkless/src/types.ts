@@ -31,4 +31,5 @@ export type TrackingStatus =
   | "tracking"
   | "drawing"
   | "hand-not-found"
+  | "led-not-found"
   | "manual-mode";
