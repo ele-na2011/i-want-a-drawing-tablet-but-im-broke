@@ -32,7 +32,7 @@ const keyPlace = (k: string): Place => {
 };
 
 export default function App() {
-  const { session, loading, googleToken } = useAuth();
+  const { session, loading, googleToken, firstName } = useAuth();
   const [view, setView] = useState<"home" | "editor">("home");
   const [store, setStore] = useState<Store>(() => loadStore());
   const storeRef = useRef(store); // latest store for code that runs after an await
@@ -54,6 +54,7 @@ export default function App() {
   const camera = useCamera();
   const [homography, setHomography] = useState<Homography | null>(null);
   const [fingerTracking, setFingerTracking] = useState(false);
+  const [trackingMode, setTrackingMode] = useState<"pen" | "finger">("pen");
   const importInput = useRef<HTMLInputElement>(null);
 
   const doc = store.docs.find((d) => d.id === docId);
@@ -86,7 +87,7 @@ export default function App() {
   const hand = useHandTracking({
     videoRef: camera.videoRef,
     homography,
-    enabled: fingerTracking && camera.status === "ready",
+    enabled: trackingMode === "finger" && fingerTracking && camera.status === "ready",
     onSample,
   });
 
@@ -236,7 +237,7 @@ export default function App() {
           store={store} place={place} onPlace={setPlace}
           onNewDoc={newDoc} onNewProject={newProject} onNewFolder={newFolder}
           onCalibrate={() => setCalibrationOpen(true)}
-          onOpenDoc={openDoc} onDocMenu={docMenu} onSettings={() => setSettingsOpen(true)}
+          onOpenDoc={openDoc} onDocMenu={docMenu} onSettings={() => setSettingsOpen(true)} firstName={firstName}
         />
         {calibrationOpen && (
           <section className="camera-panel hub-calibration-panel" aria-label="Workspace calibration">
@@ -244,6 +245,8 @@ export default function App() {
             <button className="camera-close" aria-label="Close calibration" onClick={() => setCalibrationOpen(false)}>x</button>
             <CalibrationOverlay
               videoRef={camera.videoRef}
+              secondaryVideoRef={camera.secondaryVideoRef}
+              activeCameraCount={camera.activeCameraCount}
               cameraStatus={camera.status}
               cameraError={camera.error}
               calibrated={homography !== null}
@@ -256,6 +259,8 @@ export default function App() {
               handStatus={hand.status}
               handError={hand.error}
               onFingerTracking={setFingerTracking}
+              trackingMode={trackingMode}
+              onTrackingMode={setTrackingMode}
             />
           </section>
         )}
@@ -263,7 +268,7 @@ export default function App() {
         {settingsOpen && (
           <SettingsDialog
             onClose={() => setSettingsOpen(false)}
-            onLogOut={async () => { setSettingsOpen(false); await supabase.auth.signOut(); setView("home"); }}
+            onLogOut={async () => { setSettingsOpen(false); await supabase?.auth.signOut(); setView("home"); }}
           />
         )}
       </>
@@ -315,6 +320,8 @@ export default function App() {
           <button className="camera-close" aria-label="Hide camera view" onClick={() => setCameraOpen(false)}>x</button>
           <CalibrationOverlay
             videoRef={camera.videoRef}
+            secondaryVideoRef={camera.secondaryVideoRef}
+            activeCameraCount={camera.activeCameraCount}
             cameraStatus={camera.status}
             cameraError={camera.error}
             calibrated={homography !== null}
@@ -327,6 +334,8 @@ export default function App() {
             handStatus={hand.status}
             handError={hand.error}
             onFingerTracking={setFingerTracking}
+            trackingMode={trackingMode}
+            onTrackingMode={setTrackingMode}
           />
         </section>
       ) : (

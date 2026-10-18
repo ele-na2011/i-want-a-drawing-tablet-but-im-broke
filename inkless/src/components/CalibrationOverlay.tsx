@@ -7,6 +7,8 @@ import type { HandTrackingStatus } from "../lib/useHandTracking";
 
 interface Props {
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  secondaryVideoRef: React.RefObject<HTMLVideoElement | null>;
+  activeCameraCount: number;
   cameraStatus: "idle" | "requesting" | "ready" | "error";
   cameraError: string | null;
   calibrated: boolean;
@@ -19,17 +21,45 @@ interface Props {
   handStatus: HandTrackingStatus;
   handError: string | null;
   onFingerTracking: (enabled: boolean) => void;
+  trackingMode: "pen" | "finger";
+  onTrackingMode: (mode: "pen" | "finger") => void;
 }
 
 const destination: CalibrationPoint[] = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 const labels = ["top-left", "top-right", "bottom-right", "bottom-left"];
 
-export default function CalibrationOverlay({ videoRef, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, fingerTracking, handStatus, handError, onFingerTracking }: Props) {
+export function previewToVideoPoint(
+  point: CalibrationPoint,
+  preview: { width: number; height: number },
+  video: { videoWidth: number; videoHeight: number },
+): CalibrationPoint {
+  const previewAspect = preview.width / preview.height;
+  const videoAspect = video.videoWidth / video.videoHeight;
+  if (!Number.isFinite(videoAspect) || videoAspect <= 0) {
+    return { x: 1 - point.x, y: point.y };
+  }
+
+  if (videoAspect > previewAspect) {
+    const visibleWidth = previewAspect / videoAspect;
+    return {
+      x: 1 - (point.x * visibleWidth + (1 - visibleWidth) / 2),
+      y: point.y,
+    };
+  }
+
+  const visibleHeight = videoAspect / previewAspect;
+  return {
+    x: 1 - point.x,
+    y: point.y * visibleHeight + (1 - visibleHeight) / 2,
+  };
+}
+
+export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, fingerTracking, handStatus, handError, onFingerTracking, trackingMode, onTrackingMode }: Props) {
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([]);
-  const status: TrackingStatus = fingerTracking && handStatus === "ready"
+  const status: TrackingStatus = trackingMode === "finger" && fingerTracking && handStatus === "ready"
     ? "drawing"
-    : fingerTracking && handStatus === "hand-not-found"
+    : trackingMode === "finger" && fingerTracking && handStatus === "hand-not-found"
       ? "hand-not-found"
       : calibrated
     ? "tracking"
@@ -48,7 +78,11 @@ export default function CalibrationOverlay({ videoRef, cameraStatus, cameraError
     const next = [...points, { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height }];
     const nextCalibration = [
       ...calibrationPoints,
-      { x: 1 - next[next.length - 1].x, y: next[next.length - 1].y },
+      previewToVideoPoint(
+        next[next.length - 1],
+        { width: rect.width, height: rect.height },
+        { videoWidth: videoRef.current?.videoWidth ?? 0, videoHeight: videoRef.current?.videoHeight ?? 0 },
+      ),
     ];
     setPoints(next);
     setCalibrationPoints(nextCalibration);
@@ -61,11 +95,15 @@ export default function CalibrationOverlay({ videoRef, cameraStatus, cameraError
     <div className="camera-content">
       <div className="camera-preview" onPointerDown={capture} role="application" aria-label="Camera calibration surface">
         <video className="camera-video-mirrored" ref={videoRef} muted playsInline />
+        <video className="camera-video-mirrored camera-secondary-feed" ref={secondaryVideoRef} muted playsInline aria-label="Second camera feed" />
         {points.map((point, i) => <span className="calibration-point" key={`${point.x}-${point.y}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }} aria-label={labels[i]} />)}
         {cameraStatus === "ready" && points.length < 4 && <p className="calibration-hint">Tap {labels[points.length]} corner</p>}
       </div>
       <div className="camera-controls">
         <StatusBar status={status} />
+        <span className="camera-count" aria-label={`${activeCameraCount} of 2 cameras active`}>
+          Two-camera setup: {activeCameraCount}/2 active
+        </span>
         {cameraError && <p className="camera-error">{cameraError}</p>}
         {cameraStatus !== "ready" && <button onClick={() => onStartCamera(selectedCamera || undefined)}>{cameraStatus === "requesting" ? "Opening camera..." : "Enable camera"}</button>}
         {cameraStatus === "ready" && <button onClick={reset}>{points.length === 4 ? "Recalibrate" : "Calibrate workspace"}</button>}
@@ -79,7 +117,20 @@ export default function CalibrationOverlay({ videoRef, cameraStatus, cameraError
           <button type="button" onClick={() => onStartCamera(selectedCamera)}>Use selected</button>
         </label>
       )}
-      {calibrated && (
+      <div className="tracking-mode" aria-label="Tracking method">
+        <strong>Tracking method</strong>
+        <div>
+          <button type="button" aria-pressed={trackingMode === "pen"} onClick={() => { onTrackingMode("pen"); onFingerTracking(false); }}>
+            Pen + green LED
+          </button>
+          <button type="button" aria-pressed={trackingMode === "finger"} onClick={() => onTrackingMode("finger")}>
+            Index finger
+          </button>
+        </div>
+      </div>
+      {trackingMode === "pen" ? (
+        <p className="tracking-message">Pen mode: place the green LED on the pen and keep both cameras aimed at the workspace. Use the desktop LED tracker to send pen position data.</p>
+      ) : calibrated && (
         <button className="finger-toggle" type="button" aria-pressed={fingerTracking} onClick={() => onFingerTracking(!fingerTracking)}>
           {fingerTracking ? "Stop finger tracking" : "Track index finger"}
         </button>

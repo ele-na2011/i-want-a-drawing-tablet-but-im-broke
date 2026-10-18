@@ -10,7 +10,6 @@ import settings from "../assets/settings.png";
 import avatar from "../assets/avatar.png";
 import more from "../assets/more.png";
 import { childFolders, docsIn, type Place, type Store } from "../lib/projects";
-import { USER } from "./SettingsDialog";
 
 interface Props {
   store: Store;
@@ -23,9 +22,10 @@ interface Props {
   onOpenDoc: (id: string) => void;
   onDocMenu: (id: string) => void;
   onSettings: () => void;
+  firstName: string;
 }
 
-export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onCalibrate, onOpenDoc, onDocMenu, onSettings }: Props) {
+export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onCalibrate, onOpenDoc, onDocMenu, onSettings, firstName }: Props) {
   const [collapsed, setCollapsed] = useState(false); // Figma "MacBook Air - 7": sidebar folded to a 60px rail
   const docs = docsIn(store, place);
   const heading =
@@ -102,7 +102,7 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
         <button className="avatar" onClick={onSettings} aria-label="Account settings">
           <img src={avatar} alt="" />
         </button>
-        <h1 className="greeting">Hey, {USER.first}!</h1>
+        <h1 className="greeting">Hey, {firstName}!</h1>
         <button className="new-project" onClick={onNewProject}>
           Start a new project
           <img src={plus} alt="" />

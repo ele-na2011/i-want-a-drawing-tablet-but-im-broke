@@ -230,9 +230,11 @@ button { font: inherit; color: inherit; }
 .camera-preview { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--border); background: #27313a; cursor: crosshair; touch-action: none; }
 .camera-preview video { display: block; width: 100%; height: 100%; object-fit: cover; }
 .camera-preview .camera-video-mirrored { transform: scaleX(-1); }
+.camera-preview .camera-secondary-feed { position: absolute; right: 6px; top: 6px; width: 31%; height: 31%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
 .calibration-point { position: absolute; width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; background: var(--accent); transform: translate(-50%, -50%); box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35); }
 .calibration-hint { position: absolute; inset: auto 8px 8px; margin: 0; padding: 3px 6px; border-radius: 4px; background: rgba(0, 0, 0, 0.65); color: #fff; font-size: 0.72rem; text-align: center; }
 .camera-controls { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: 0.75rem; }
+.camera-count { font-size: 0.68rem; color: var(--text); }
 .camera-controls button { padding: 4px 8px; border-radius: 4px; background: var(--bg); }
 .camera-error { margin: 0; color: #8a2020; font-size: 0.7rem; }
 .camera-select { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 5px; font-size: 0.7rem; }
@@ -240,6 +242,10 @@ button { font: inherit; color: inherit; }
 .finger-toggle { width: 100%; padding: 5px 8px; border-radius: 4px; background: var(--accent); color: #fff; font-size: 0.75rem; }
 .finger-toggle[aria-pressed="true"] { background: #4a6578; }
 .tracking-message { margin: 0; font-size: 0.7rem; }
+.tracking-mode { display: grid; gap: 4px; font-size: 0.7rem; }
+.tracking-mode > div { display: flex; gap: 5px; }
+.tracking-mode button { flex: 1; padding: 5px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); font: inherit; }
+.tracking-mode button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 .sensor-card { display: grid; gap: 1px; padding: 6px 8px; border-radius: 5px; background: rgba(255, 255, 255, 0.5); font-size: 0.72rem; }
 .sensor-card small { opacity: 0.7; font-size: 0.65rem; }
 
