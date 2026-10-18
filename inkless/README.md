@@ -20,14 +20,10 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 The file is ignored by Git and must not be committed.
 
-<<<<<<< HEAD
-## Vercel deployment
-=======
 In Supabase Authentication, enable Google and add the app URL to the allowed
 redirect URLs.
 
-## GitHub Pages deployment
->>>>>>> 222b8b1cb7578b1edf850c90821e68d2dc8a7cf3
+## Vercel deployment
 
 The repository includes a root
 [`vercel.json`](../vercel.json) that builds the `inkless` app and publishes its
@@ -47,5 +43,13 @@ need a browser; they do not need Node.js, npm, or Supabase installed locally.
 
 After deployment, add the Vercel domain (for example,
 `https://your-project.vercel.app`) to Supabase **Authentication > URL
+Configuration > Redirect URLs** and to the Google OAuth provider's authorized
+redirect configuration.
+
+## GitHub Pages deployment
+
+If GitHub Pages is enabled for this repository, configure the same
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values as repository Actions
+secrets. Add the published Pages URL to Supabase **Authentication > URL
 Configuration > Redirect URLs** and to the Google OAuth provider's authorized
 redirect configuration.
