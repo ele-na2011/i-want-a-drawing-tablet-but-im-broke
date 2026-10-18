@@ -182,6 +182,9 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
             : tracking ? "Stop finger tracking" : "Track index finger"}
         </button>
       )}
+      {trackingMode === "pen" && tracking && activeCameraCount < 2 && (
+        <p className="tracking-message">Pen up/down needs the webcam (Z) too. Pick it under Webcam (Z) and press Use selected.</p>
+      )}
       {trackingMode === "pen" && tracking && activeCameraCount === 2 && (
         <div className="tracking-mode" aria-label="Pen height calibration">
           <strong>Pen up / down (bottom camera){zCalibrated ? " · calibrated" : ""}</strong>
