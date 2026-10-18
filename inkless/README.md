@@ -1,34 +1,55 @@
-# INKLESS
+# Inkless
 
-Draw on anything, keep everything. Draw or write whatever you want, whenever you want.
+Inkless is a Vite/React drawing app that supports camera calibration, green-LED
+pen tracking, and optional index-finger tracking.
 
-## Features 
-+ Notebook editor in-app with different colors and brush sizes
-+ Organization System for all your notes
-+ Sign-in to keep your work private
-+ Export to Google Docs to make the most of your notes
-+ Tracking on any surface
-+ Full-Mobility Camera (attach it anywhere!)
+## Local development
 
-## How to Deploy
+```bash
+cd inkless
+npm ci
+npm run dev
+```
 
-Required Materials: Webcam, Pen Attachment
+For Supabase authentication, create `inkless/.env.local`:
 
-1. Set up your webcam and pen attachment
-2. Go to https://i-want-a-drawing-tablet-but-im-brok-two.vercel.app/ 
-3. Log in using your Google Account
-4. Calibrate and Enjoy!
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
 
-## Stack
+The file is ignored by Git and must not be committed.
 
-+ React
-+ Vite
-+ JavaScript/TypeScript
-+ browser camera APIs
-+ ONNX Runtime Web
-+ YOLO LED-detection model
-+ Supabase
-+ Google Drive integration.
+In Supabase Authentication, enable Google and add the app URL to the allowed
+redirect URLs.
 
-## Credits
-CLAUDEEEEEEEEE
+## Vercel deployment
+
+The repository includes a root
+[`vercel.json`](../vercel.json) that builds the `inkless` app and publishes its
+Vite output from `inkless/dist`.
+
+In Vercel:
+
+1. Import this GitHub repository.
+2. Leave the project root set to the repository root.
+3. Add these Environment Variables for Production, Preview, and Development:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy.
+
+Vercel provides HTTPS, which browsers require for camera access. Users only
+need a browser; they do not need Node.js, npm, or Supabase installed locally.
+
+After deployment, add the Vercel domain (for example,
+`https://your-project.vercel.app`) to Supabase **Authentication > URL
+Configuration > Redirect URLs** and to the Google OAuth provider's authorized
+redirect configuration.
+
+## GitHub Pages deployment
+
+If GitHub Pages is enabled for this repository, configure the same
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values as repository Actions
+secrets. Add the published Pages URL to Supabase **Authentication > URL
+Configuration > Redirect URLs** and to the Google OAuth provider's authorized
+redirect configuration.
