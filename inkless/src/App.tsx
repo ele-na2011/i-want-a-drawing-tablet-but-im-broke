@@ -487,6 +487,7 @@ export default function App() {
               penHeight={led.z}
               zCalibrated={zCalibration !== null}
               onZCalibrated={setZCalibration}
+              onPage={led.pagePoint !== null}
             />
           </section>
         )}
@@ -580,6 +581,7 @@ export default function App() {
             strokes={strokes}
             onSample={onSample}
             background={background}
+            penPoint={trackingMode === "pen" ? led.pagePoint : null}
             cursorColor={
               tool === "eraser"
                 ? "rgba(0, 0, 0, 0.56)"
@@ -634,6 +636,7 @@ export default function App() {
           penHeight={led.z}
           zCalibrated={zCalibration !== null}
           onZCalibrated={setZCalibration}
+          onPage={led.pagePoint !== null}
         />
       </section>
 
