@@ -289,6 +289,8 @@ export default function App() {
               onTracking={setTracking}
               trackingMode={trackingMode}
               onTrackingMode={setTrackingMode}
+              onVideoMount={camera.attach}
+              ledPoint={trackingMode === "pen" ? led.point : null}
             />
           </section>
         )}
@@ -342,33 +344,33 @@ export default function App() {
       </main>
 
       {/* ---------- CAMERA: floating preview + calibration ---------- */}
-      {cameraOpen ? (
-        <section className="camera-panel" aria-label="Camera view">
-          <h2>Camera view</h2>
-          <button className="camera-close" aria-label="Hide camera view" onClick={() => setCameraOpen(false)}>x</button>
-          <CalibrationOverlay
-            videoRef={camera.videoRef}
-            secondaryVideoRef={camera.secondaryVideoRef}
-            activeCameraCount={camera.activeCameraCount}
-            cameraStatus={camera.status}
-            cameraError={camera.error}
-            calibrated={homography !== null}
-            onCalibrated={setHomography}
-            cameras={camera.devices}
-            selectedCamera={camera.selectedDeviceId}
-            onSelectCamera={camera.setSelectedDeviceId}
-            onStartCamera={camera.start}
-            tracking={tracking}
-            trackerStatus={tracker.status}
-            trackerError={tracker.error}
-            onTracking={setTracking}
-            trackingMode={trackingMode}
-            onTrackingMode={setTrackingMode}
-          />
-        </section>
-      ) : (
-        <button className="camera-tab" onClick={() => setCameraOpen(true)}>Camera view</button>
-      )}
+      {/* Hidden rather than removed, so the camera keeps feeding the tracker while the panel is closed. */}
+      <section className="camera-panel" aria-label="Camera view" style={cameraOpen ? undefined : { display: "none" }}>
+        <h2>Camera view</h2>
+        <button className="camera-close" aria-label="Hide camera view" onClick={() => setCameraOpen(false)}>x</button>
+        <CalibrationOverlay
+          videoRef={camera.videoRef}
+          secondaryVideoRef={camera.secondaryVideoRef}
+          activeCameraCount={camera.activeCameraCount}
+          cameraStatus={camera.status}
+          cameraError={camera.error}
+          calibrated={homography !== null}
+          onCalibrated={setHomography}
+          cameras={camera.devices}
+          selectedCamera={camera.selectedDeviceId}
+          onSelectCamera={camera.setSelectedDeviceId}
+          onStartCamera={camera.start}
+          tracking={tracking}
+          trackerStatus={tracker.status}
+          trackerError={tracker.error}
+          onTracking={setTracking}
+          trackingMode={trackingMode}
+          onTrackingMode={setTrackingMode}
+          onVideoMount={camera.attach}
+          ledPoint={trackingMode === "pen" ? led.point : null}
+        />
+      </section>
+      {!cameraOpen && <button className="camera-tab" onClick={() => setCameraOpen(true)}>Camera view</button>}
       {dialog}
     </div>
   );

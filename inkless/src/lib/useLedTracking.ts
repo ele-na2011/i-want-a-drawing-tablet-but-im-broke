@@ -22,6 +22,7 @@ interface Options {
 export function useLedTracking({ videoRef, homography, enabled, onSample }: Options) {
   const [status, setStatus] = useState<LedTrackingStatus>("off");
   const [error, setError] = useState<string | null>(null);
+  const [point, setPoint] = useState<{ x: number; y: number } | null>(null); // last LED seen, 0..1 in the raw video frame
   const callbackRef = useRef(onSample);
   const homographyRef = useRef(homography);
   callbackRef.current = onSample;
@@ -30,6 +31,7 @@ export function useLedTracking({ videoRef, homography, enabled, onSample }: Opti
   useEffect(() => {
     if (!enabled) {
       setStatus("off");
+      setPoint(null);
       return;
     }
     let cancelled = false;
@@ -67,6 +69,7 @@ export function useLedTracking({ videoRef, homography, enabled, onSample }: Opti
       if (cancelled) return;
       const now = performance.now();
       const led = pickLed(result.output0.data as Float32Array, box, size);
+      setPoint(led && { x: led.x, y: led.y }); // shown on the camera preview, even outside the page
       if (!led) return lost(now);
       const mapped = project(led, transform);
       if (mapped.x < 0 || mapped.x > 1 || mapped.y < 0 || mapped.y > 1) return lost(now);
@@ -124,5 +127,5 @@ export function useLedTracking({ videoRef, homography, enabled, onSample }: Opti
     };
   }, [enabled, videoRef]);
 
-  return { status, error };
+  return { status, error, point };
 }

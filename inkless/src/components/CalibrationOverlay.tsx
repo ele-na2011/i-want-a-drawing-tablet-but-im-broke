@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { findHomography, type CalibrationPoint, type Homography } from "../lib/homography";
 import { fuseSensors } from "../lib/sensorFusion";
+import { previewToVideoPoint, videoToPreviewPoint } from "../lib/preview";
 import StatusBar from "./StatusBar";
 import type { TrackingStatus } from "../types";
 import type { HandTrackingStatus } from "../lib/useHandTracking";
@@ -24,40 +25,18 @@ interface Props {
   onTracking: (enabled: boolean) => void;
   trackingMode: "pen" | "finger";
   onTrackingMode: (mode: "pen" | "finger") => void;
+  onVideoMount: () => void;
+  ledPoint: CalibrationPoint | null; // where the pen LED was last seen, in raw video coordinates
 }
 
 const destination: CalibrationPoint[] = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 const labels = ["top-left", "top-right", "bottom-right", "bottom-left"];
 
-export function previewToVideoPoint(
-  point: CalibrationPoint,
-  preview: { width: number; height: number },
-  video: { videoWidth: number; videoHeight: number },
-): CalibrationPoint {
-  const previewAspect = preview.width / preview.height;
-  const videoAspect = video.videoWidth / video.videoHeight;
-  if (!Number.isFinite(videoAspect) || videoAspect <= 0) {
-    return { x: 1 - point.x, y: point.y };
-  }
-
-  if (videoAspect > previewAspect) {
-    const visibleWidth = previewAspect / videoAspect;
-    return {
-      x: 1 - (point.x * visibleWidth + (1 - visibleWidth) / 2),
-      y: point.y,
-    };
-  }
-
-  const visibleHeight = videoAspect / previewAspect;
-  return {
-    x: 1 - point.x,
-    y: point.y * visibleHeight + (1 - visibleHeight) / 2,
-  };
-}
-
-export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode }: Props) {
+export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode, onVideoMount, ledPoint }: Props) {
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([]);
+  const previewRef = useRef<HTMLDivElement>(null);
+  useEffect(onVideoMount, [onVideoMount]);
   const status: TrackingStatus = tracking && trackerStatus === "ready"
     ? "drawing"
     : tracking && (trackerStatus === "hand-not-found" || trackerStatus === "led-not-found")
@@ -73,6 +52,12 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
     setPoints([]);
     setCalibrationPoints([]);
   };
+  const preview = previewRef.current;
+  const video = videoRef.current;
+  const marker = ledPoint && preview && video
+    ? videoToPreviewPoint(ledPoint, preview.getBoundingClientRect(), video)
+    : null;
+
   const capture = (event: React.PointerEvent<HTMLDivElement>) => {
     if (cameraStatus !== "ready" || points.length >= 4) return;
     const rect = event.currentTarget.getBoundingClientRect();
@@ -94,10 +79,11 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
 
   return (
     <div className="camera-content">
-      <div className="camera-preview" onPointerDown={capture} role="application" aria-label="Camera calibration surface">
+      <div className="camera-preview" ref={previewRef} onPointerDown={capture} role="application" aria-label="Camera calibration surface">
         <video className="camera-video-mirrored" ref={videoRef} muted playsInline />
         <video className="camera-video-mirrored camera-secondary-feed" ref={secondaryVideoRef} muted playsInline aria-label="Second camera feed" />
         {points.map((point, i) => <span className="calibration-point" key={`${point.x}-${point.y}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }} aria-label={labels[i]} />)}
+        {marker && <span className="led-marker" style={{ left: `${marker.x * 100}%`, top: `${marker.y * 100}%` }} aria-label="Pen LED" />}
         {cameraStatus === "ready" && points.length < 4 && <p className="calibration-hint">Tap {labels[points.length]} corner</p>}
       </div>
       <div className="camera-controls">

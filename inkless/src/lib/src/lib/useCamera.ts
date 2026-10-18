@@ -90,6 +90,17 @@ export function useCamera() {
     }
   }, [refreshDevices]);
 
+  // A <video> that mounts after start() (Home -> editor, or a reopened panel) starts out empty: hand it the running stream.
+  const attach = useCallback(() => {
+    [videoRef.current, secondaryVideoRef.current].forEach((video, index) => {
+      const stream = streamRefs.current[index];
+      if (video && stream && video.srcObject !== stream) {
+        video.srcObject = stream;
+        video.play().catch(() => {});
+      }
+    });
+  }, []);
+
   useEffect(() => {
     refreshDevices().catch(() => setError("Could not list connected cameras."));
     const onDeviceChange = () => { refreshDevices().catch(() => setError("Could not list connected cameras.")); };
@@ -100,5 +111,5 @@ export function useCamera() {
     };
   }, [refreshDevices, stop]);
 
-  return { videoRef, secondaryVideoRef, status, error, devices, activeCameraCount, selectedDeviceId, setSelectedDeviceId, start, stop };
+  return { videoRef, secondaryVideoRef, status, error, devices, activeCameraCount, selectedDeviceId, setSelectedDeviceId, start, stop, attach };
 }
