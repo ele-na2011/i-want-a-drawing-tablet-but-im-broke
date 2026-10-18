@@ -123,7 +123,7 @@ button { font: inherit; color: inherit; }
 .new-project:hover { background: rgba(169, 183, 198, 0.5); }
 .new-project img { width: calc(25 * var(--u)); height: calc(25 * var(--u)); }
 
-.recent { align-self: stretch; margin-top: calc(88.7 * var(--u)); padding-left: calc(55 * var(--u)); }
+.recent { align-self: stretch; margin-top: calc(90 * var(--u)); padding-left: calc(55 * var(--u)); }
 .recent h2 { margin: 0 0 calc(24 * var(--u)); font-family: var(--font-display); font-size: calc(28 * var(--u)); font-weight: 400; line-height: calc(57 * var(--u)); }
 /* No visible scrollbar (Figma lets the 4th card run off the edge); still scrolls with shift+wheel, touch and Tab.
    No bottom padding, so cards + names end inside an 832px window and the page never scrolls. */
