@@ -5,7 +5,7 @@ import { INPUT, letterbox, nextPenDown, pickLed, toTensor, zLevel, type ZCalibra
 import type { Point } from "../types";
 
 // Frames the LED can go missing before the pen counts as lifted; one dropped detection shouldn't cut a stroke.
-const MISS_GRACE = 4;
+const MISS_GRACE = 2; // 4 kept drawing for a moment after lifting
 
 export type LedTrackingStatus = "off" | "loading" | "ready" | "led-not-found" | "error";
 
