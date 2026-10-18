@@ -27,8 +27,6 @@ import CalibrationOverlay from "./components/CalibrationOverlay";
 import { useCamera } from "./lib/src/lib/useCamera";
 import type { Homography } from "./lib/homography";
 import type { ZCalibration } from "./lib/ledDetect";
-import { beautifyStrokes } from "./lib/beautify";
-import { useDrawHold } from "./lib/useDrawHold";
 import { useHandTracking } from "./lib/useHandTracking";
 import { useLedTracking } from "./lib/useLedTracking";
 import "./styles.css";
@@ -68,8 +66,6 @@ export default function App() {
 
   const [justSaved, setJustSaved] = useState(false);
   const [thickness, setThickness] = useState(4);
-  const [beautified, setBeautified] = useState(true);
-  const [smoothing, setSmoothing] = useState(0.5);
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState(COLORS[0].value);
   const [penOn, setPenOn] = useState(true);
@@ -79,8 +75,6 @@ export default function App() {
   const [cameraOpen, setCameraOpen] = useState(true);
 
   const camera = useCamera();
-  const drawHold = useDrawHold();
-  const [automaticSurface, setAutomaticSurface] = useState(false);
 
   const [homography, setHomography] = useState<Homography | null>(null);
   const [zCalibration, setZCalibration] = useState<ZCalibration | null>(null);
@@ -93,12 +87,7 @@ export default function App() {
     drawing.strokes !== saved.strokes ||
     background !== saved.background;
 
-  const cleanStrokes = useMemo(
-    () => beautified ? beautifyStrokes(drawing.strokes, smoothing) : drawing.strokes,
-    [drawing.strokes, beautified, smoothing]
-  );
-  // Live stroke stays raw to avoid adding smoothing latency during tracking.
-  const strokes = useMemo(() => allStrokes({ ...drawing, strokes: cleanStrokes }), [drawing, cleanStrokes]);
+  const strokes = useMemo(() => allStrokes(drawing), [drawing]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -112,7 +101,7 @@ export default function App() {
   const onSample = useCallback(
     (p: Point, penDown: boolean) => {
       setDrawing((d) => {
-        if (!penDown || !penOn || view !== "editor" || calibrationOpen) return finishStroke(d);
+        if (!penDown || !penOn) return finishStroke(d);
         if (d.active) return extendStroke(d, p);
 
         return tool === "eraser"
@@ -120,15 +109,11 @@ export default function App() {
           : beginStroke(d, p, thickness, color);
       });
     },
-    [thickness, tool, color, penOn, view, calibrationOpen]
+    [thickness, tool, color, penOn]
   );
 
   const hand = useHandTracking({
     videoRef: camera.videoRef,
-    sideVideoRef: camera.secondaryVideoRef,
-    zCalibration,
-    drawHeld: drawHold.held,
-    automatic: automaticSurface,
     homography,
     enabled:
       trackingMode === "finger" &&
@@ -139,8 +124,6 @@ export default function App() {
 
   const led = useLedTracking({
     videoRef: camera.videoRef,
-    drawHeld: drawHold.held,
-    automatic: automaticSurface,
     homography,
     sideVideoRef: camera.secondaryVideoRef,
     zCalibration,
@@ -174,8 +157,8 @@ export default function App() {
     }
   };
 
-  const page = (enhanced = false) => ({
-    strokes: enhanced ? cleanStrokes : drawing.strokes,
+  const page = () => ({
+    strokes: drawing.strokes,
     background,
     size: { ...PAGE },
   });
@@ -204,7 +187,7 @@ export default function App() {
 
   const handleExport = async () => {
     try {
-      await downloadPdf(page(true), doc?.name ?? "drawing");
+      await downloadPdf(page(), doc?.name ?? "drawing");
     } catch {
       tell(
         "Couldn't export",
@@ -479,7 +462,6 @@ export default function App() {
             </button>
 
             <CalibrationOverlay
-              key={trackingMode}
               videoRef={camera.videoRef}
               secondaryVideoRef={camera.secondaryVideoRef}
               activeCameraCount={camera.activeCameraCount}
@@ -498,31 +480,15 @@ export default function App() {
               trackerError={tracker.error}
               onTracking={setTracking}
               trackingMode={trackingMode}
-              onTrackingMode={(mode) => {
-                if (mode === trackingMode) return;
-                setAutomaticSurface(false);
-                drawHold.release();
-                setHomography(null);
-                setZCalibration(null);
-                setTrackingMode(mode);
-              } }
+              onTrackingMode={setTrackingMode}
               onVideoMount={camera.attach}
-              ledPoint={tracker.point}
-              sideLedPoint={tracker.sidePoint}
-              penHeight={tracker.z}
+              ledPoint={trackingMode === "pen" ? led.point : null}
+              sideLedPoint={trackingMode === "pen" ? led.sidePoint : null}
+              penHeight={led.z}
               zCalibrated={zCalibration !== null}
               onZCalibrated={setZCalibration}
-              onPage={led.pagePoint !== null} ledThreshold={0} onLedThreshold={function (_threshold: number): void {
-                throw new Error("Function not implemented.");
-              } } ledMode={"green"} onLedMode={function (_mode: "green" | "bright"): void {
-                throw new Error("Function not implemented.");
-              } } ledFps={0} automaticSurface={false} onAutomaticSurface={function (_value: boolean): void {
-                throw new Error("Function not implemented.");
-              } } onDrawPress={function (): void {
-                throw new Error("Function not implemented.");
-              } } onDrawRelease={function (): void {
-                throw new Error("Function not implemented.");
-              } }            />
+              onPage={led.pagePoint !== null}
+            />
           </section>
         )}
 
@@ -606,10 +572,6 @@ export default function App() {
           onRedo={() => setDrawing(redo)}
           canUndo={drawing.strokes.length > 0}
           canRedo={drawing.undone.length > 0}
-          beautified={beautified}
-          onBeautified={setBeautified}
-          smoothing={smoothing}
-          onSmoothing={setSmoothing}
         />
       </header>
 
@@ -649,7 +611,6 @@ export default function App() {
         </button>
 
         <CalibrationOverlay
-          key={trackingMode}
           videoRef={camera.videoRef}
           secondaryVideoRef={camera.secondaryVideoRef}
           activeCameraCount={camera.activeCameraCount}
@@ -668,31 +629,15 @@ export default function App() {
           trackerError={tracker.error}
           onTracking={setTracking}
           trackingMode={trackingMode}
-          onTrackingMode={(mode) => {
-            if (mode === trackingMode) return;
-            setAutomaticSurface(false);
-            drawHold.release();
-            setHomography(null);
-            setZCalibration(null);
-            setTrackingMode(mode);
-          } }
+          onTrackingMode={setTrackingMode}
           onVideoMount={camera.attach}
-          ledPoint={tracker.point}
-          sideLedPoint={tracker.sidePoint}
-          penHeight={tracker.z}
+          ledPoint={trackingMode === "pen" ? led.point : null}
+          sideLedPoint={trackingMode === "pen" ? led.sidePoint : null}
+          penHeight={led.z}
           zCalibrated={zCalibration !== null}
           onZCalibrated={setZCalibration}
-          onPage={led.pagePoint !== null} ledThreshold={0} onLedThreshold={function (): void {
-            throw new Error("Function not implemented.");
-          } } ledMode={"green"} onLedMode={function (): void {
-            throw new Error("Function not implemented.");
-          } } ledFps={0} automaticSurface={false} onAutomaticSurface={function (): void {
-            throw new Error("Function not implemented.");
-          } } onDrawPress={function (): void {
-            throw new Error("Function not implemented.");
-          } } onDrawRelease={function (): void {
-            throw new Error("Function not implemented.");
-          } }        />
+          onPage={led.pagePoint !== null}
+        />
       </section>
 
       {!cameraOpen && (

@@ -14,7 +14,7 @@ interface Props {
   cameraStatus: "idle" | "requesting" | "ready" | "error";
   cameraError: string | null;
   calibrated: boolean;
-  onCalibrated: (homography: Homography | null) => void;
+  onCalibrated: (homography: Homography) => void;
   cameras: { deviceId: string; label: string }[];
   selectedCamera: string;
   onSelectCamera: (deviceId: string) => void;
@@ -34,22 +34,12 @@ interface Props {
   zCalibrated: boolean;
   onPage: boolean; // the tracked tip maps inside the page
   onZCalibrated: (calibration: ZCalibration) => void;
-  ledThreshold: number;
-  onLedThreshold: (threshold: number) => void;
-  ledMode: "green" | "bright";
-  onLedMode: (mode: "green" | "bright") => void;
-  ledFps: number;
-  automaticSurface: boolean;
-  onAutomaticSurface: (value: boolean) => void;
-  onDrawPress: () => void;
-  onDrawRelease: () => void;
 }
 
 const destination: CalibrationPoint[] = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 const labels = ["top-left", "top-right", "bottom-right", "bottom-left"];
 
-export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, selectedSecondaryCamera, onSelectSecondaryCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode, onVideoMount, ledPoint, sideLedPoint, penHeight, zCalibrated, onPage, onZCalibrated, ledThreshold: _ledThreshold, onLedThreshold: _onLedThreshold, ledMode: _ledMode, onLedMode: _onLedMode, ledFps: _ledFps, automaticSurface: _automaticSurface, onAutomaticSurface: _onAutomaticSurface, onDrawPress: _onDrawPress, onDrawRelease: _onDrawRelease }: Props): import("react").JSX.Element {
-  const [, setXyError] = useState<string | null>(null);
+export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, selectedSecondaryCamera, onSelectSecondaryCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode, onVideoMount, ledPoint, sideLedPoint, penHeight, zCalibrated, onZCalibrated, onPage }: Props) {
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([]);
   const [touchY, setTouchY] = useState<number | null>(null);
@@ -64,7 +54,7 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
   // The other overlay (home vs editor) may have set the corners, so the shared homography counts too.
   const cornersDone = points.length === 4 || (calibrated && !redoingCorners);
   const status: TrackingStatus = tracking && trackerStatus === "ready" && calibrated
-    ? "tracking"
+    ? "drawing"
     : tracking && (trackerStatus === "hand-not-found" || trackerStatus === "led-not-found")
       ? trackerStatus
       : calibrated
@@ -94,7 +84,7 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
   const setLifted = (hoverY: number) => {
     // Too close and every bit of detector jitter flips the pen up and down.
     if (touchY === null || Math.abs(hoverY - touchY) < 0.02) {
-      setZError("The lifted target is too close to its touching position. Lift the finger or pen about 1 cm and try again.");
+      setZError("The lifted LED is too close to the on-paper one. Lift the pen about 1 cm and try again.");
       return;
     }
     setZError(null);
@@ -103,8 +93,6 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
   };
 
   const reset = () => {
-    onCalibrated(null);
-    setXyError(null);
     setPoints([]);
     setCalibrationPoints([]);
     setRedoingCorners(true);
@@ -120,22 +108,6 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
     if (!camerasOn || cornersDone) return;
     const next = [...points, previewPoint];
     const nextCalibration = [...calibrationPoints, videoPoint];
-    if (next.length === 4) {
-      try {
-        const turns = next.map((p, i) => {
-          const q = next[(i + 1) % 4], r = next[(i + 2) % 4];
-          return (q.x - p.x) * (r.y - q.y) - (q.y - p.y) * (r.x - q.x);
-        });
-        if (!turns.every(t => t > 0.001)) {
-          throw new Error("Use the preview's corners in order: top-left, top-right, bottom-right, bottom-left. Press Recalibrate to restart.");
-        }
-        onCalibrated(findHomography(nextCalibration, destination));
-      } catch (e) {
-        setXyError(e instanceof Error ? e.message : String(e));
-        return;
-      }
-    }
-    setXyError(null);
     setPoints(next);
     setCalibrationPoints(nextCalibration);
     if (next.length === 4) {
@@ -151,7 +123,6 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
     : null;
 
   const capture = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (tracking) return; // use Capture corner; clicking preview must not add another point
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height };
     addCorner(point, previewToVideoPoint(

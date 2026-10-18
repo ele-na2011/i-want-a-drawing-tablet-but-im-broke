@@ -21,10 +21,6 @@ interface Props {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  beautified: boolean;
-  onBeautified: (value: boolean) => void;
-  smoothing: number;
-  onSmoothing: (value: number) => void;
 }
 
 // UI OWNER: buttons are plain <button>s; icons come from src/assets (Figma "MacBook Air - 3").
@@ -60,13 +56,6 @@ export default function Toolbar(p: Props) {
           onChange={(e) => p.onThickness(Number(e.target.value))}
         />
       </label>
-      <div className="beautify-tools" role="group" aria-label="Handwriting cleanup">
-        <button type="button" aria-pressed={!p.beautified} onClick={() => p.onBeautified(false)}>Raw</button>
-        <button type="button" aria-pressed={p.beautified} onClick={() => p.onBeautified(true)}>Beautify</button>
-        <label>Smoothing <input type="range" min="0" max="1" step="0.1" value={p.smoothing}
-          disabled={!p.beautified} onChange={e => p.onSmoothing(Number(e.target.value))} /></label>
-        <small>Cleanup appears after each stroke. Save keeps originals; export uses this view.</small>
-      </div>
     </div>
   );
 }

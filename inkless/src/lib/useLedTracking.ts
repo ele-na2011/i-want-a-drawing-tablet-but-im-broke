@@ -1,218 +1,171 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { project, type Homography } from './homography';
-import { zLevel, type ZCalibration } from './ledDetect';
-import { findBrightLed, createLedScratch, type LedBlob } from './fastLed';
-import type { Point } from '../types';
-import { surfaceAllowsDrawing } from './surfaceGate';
-import { decodeTrainedLed, VerifiedLedTrack } from './trainedLed';
-import type { InferenceSession } from 'onnxruntime-web';
+import { useEffect, useRef, useState, type RefObject } from "react";
+import * as ort from "onnxruntime-web/webgpu";
+import { project, type Homography } from "./homography";
+import { INPUT, letterbox, nextPenDown, pickLed, toTensor, zLevel, type ZCalibration } from "./ledDetect";
+import type { Point } from "../types";
 
-export type LedTrackingStatus = 'off' | 'loading' | 'ready' | 'led-not-found' | 'error';
+export type LedTrackingStatus = "off" | "loading" | "ready" | "led-not-found" | "error";
+
+// Same model as track_led.py (best.pt), exported with: YOLO("best.pt").export(format="onnx", imgsz=640, opset=17)
+const MODEL_URL = "/models/green_led.onnx";
+ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/"; // keep in step with package.json
+
 interface Options {
   videoRef: RefObject<HTMLVideoElement | null>;
-  sideVideoRef: RefObject<HTMLVideoElement | null>;
   homography: Homography | null;
+  sideVideoRef: RefObject<HTMLVideoElement | null>; // the bottom camera, looking across the paper
   zCalibration: ZCalibration | null;
-  drawHeld: RefObject<boolean>;
-  automatic: boolean;
   enabled: boolean;
-  onSample: (point: Point, down: boolean) => void;
+  onSample: (point: Point, penDown: boolean) => void;
 }
 
-export function useLedTracking(options: Options) {
-  const latest = useRef(options);
-  latest.current = options;
-  const [threshold, setThreshold] = useState(150);
-  const [mode, setMode] = useState<'green' | 'bright'>('green');
-  const settings = useRef({ threshold, mode });
-  settings.current = { threshold, mode };
-  const [state, setState] = useState<{
-    status: LedTrackingStatus; error: string | null;
-    point: LedBlob | null; sidePoint: LedBlob | null;
-    pagePoint: { x: number; y: number } | null; z: number | null; fps: number;
-  }>({ status: 'off', error: null, point: null, sidePoint: null, pagePoint: null, z: null, fps: 0 });
+// With the side camera calibrated, the pen is down when its LED is near the paper there (contact_detection.py).
+// With one camera, it counts as down whenever the LED is seen inside the page.
+export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibration, enabled, onSample }: Options) {
+  const [status, setStatus] = useState<LedTrackingStatus>("off");
+  const [error, setError] = useState<string | null>(null);
+  const [point, setPoint] = useState<{ x: number; y: number } | null>(null); // last LED seen, 0..1 in the raw video frame
+  const [sidePoint, setSidePoint] = useState<{ x: number; y: number } | null>(null); // same, in the side camera
+  const [z, setZ] = useState<number | null>(null);
+  const [pagePoint, setPagePoint] = useState<{ x: number; y: number } | null>(null); // the tip on the page, 0..1, pen up or down
+  const callbackRef = useRef(onSample);
+  const homographyRef = useRef(homography);
+  const zCalibrationRef = useRef(zCalibration);
+  callbackRef.current = onSample;
+  homographyRef.current = homography;
+  zCalibrationRef.current = zCalibration;
 
   useEffect(() => {
-    if (!options.enabled) {
-      setState({ status: 'off', error: null, point: null, sidePoint: null, pagePoint: null, z: null, fps: 0 });
+    if (!enabled) {
+      setStatus("off");
+      setPoint(null);
+      setSidePoint(null);
+      setZ(null);
+      setPagePoint(null);
       return;
     }
     let cancelled = false;
-    let session: InferenceSession | null = null;
-    let pending: Promise<void> | null = null;
-    let ort: typeof import('onnxruntime-web/webgpu') | null = null;
-    let modelBusy = false, lastModel = -Infinity, nextView = 0;
-    let warning: string | null = null;
-    const modelCanvas = document.createElement('canvas');
-    modelCanvas.width = modelCanvas.height = 640;
-    const modelContext = modelCanvas.getContext('2d', { willReadFrequently: true })!;
-    const modelInput = new Float32Array(3 * 640 * 640);
-    const topIdentity = new VerifiedLedTrack(), sideIdentity = new VerifiedLedTrack();
-    const makeDetector = (identity: VerifiedLedTrack) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-      let source: MediaProvider | null = null;
-      let lastSettings = '';
-      let scratch = createLedScratch(0);
-      return (video: HTMLVideoElement, now: number) => {
-        const height = Math.max(1, Math.round(320 * video.videoHeight / video.videoWidth));
-        if (canvas.width !== 320 || canvas.height !== height) {
-          canvas.width = 320; canvas.height = height;
-          scratch = createLedScratch(320 * height);
-        }
-        const { threshold, mode } = settings.current;
-        const key = `${threshold}/${mode}`;
-        if (source !== video.srcObject || lastSettings !== key) {
-          identity.reset(); source = video.srcObject; lastSettings = key;
-        }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const candidate = findBrightLed(ctx.getImageData(0, 0, canvas.width, canvas.height).data,
-          canvas.width, canvas.height, threshold, mode, identity.previous, scratch);
-        return identity.update(candidate, now);
-      };
-    };
-    const detectTop = makeDetector(topIdentity), detectSide = makeDetector(sideIdentity);
-    const verify = (video: HTMLVideoElement, identity: VerifiedLedTrack) => {
-      const width = video.videoWidth, height = video.videoHeight;
-      const snapshot = identity.snapshot(performance.now());
-      const scale = Math.min(640 / width, 640 / height);
-      const rw = Math.round(width * scale), rh = Math.round(height * scale);
-      modelContext.fillStyle = 'rgb(114,114,114)';
-      modelContext.fillRect(0, 0, 640, 640);
-      modelContext.drawImage(video, Math.floor((640 - rw) / 2), Math.floor((640 - rh) / 2), rw, rh);
-      const pixels = modelContext.getImageData(0, 0, 640, 640).data;
-      const area = 640 * 640;
-      for (let i = 0; i < area; i++) {
-        modelInput[i] = pixels[i * 4] / 255;
-        modelInput[area + i] = pixels[i * 4 + 1] / 255;
-        modelInput[2 * area + i] = pixels[i * 4 + 2] / 255;
-      }
-      modelBusy = true;
-      const input = new ort!.Tensor('float32', modelInput, [1, 3, 640, 640]);
-      pending = session!.run({ images: input }).then(result => {
-        try {
-          if (!cancelled) {
-            const output = result.output0;
-            if (!output) throw new Error('LED model output0 was not found.');
-            identity.approve(snapshot, decodeTrainedLed(output.data as Float32Array, output.dims, { width, height }), performance.now());
-          }
-        } finally { Object.values(result).forEach(tensor => tensor.dispose()); }
-      }).catch(e => {
-        if (!cancelled) {
-          end(performance.now());
-          warning = `AI LED detection failed: ${e instanceof Error ? e.message : String(e)}`;
-          topIdentity.reset(); sideIdentity.reset();
-          setState(s => ({ ...s, status: 'error', error: warning, point: null, sidePoint: null, pagePoint: null, z: null }));
-          cancelled = true; cancelAnimationFrame(frame);
-        }
-      }).finally(() => { input.dispose(); modelBusy = false; });
-    };
-    let frame = 0, lastFrame = -1, lastSideFrame = -1;
-    let lastProcessed = -Infinity, lastPublish = -Infinity;
-    let sideSeen = -Infinity, topSeen = -Infinity;
-    let sidePoint: LedBlob | null = null;
-    let smooth: { x: number; y: number } | null = null;
-    let down = false, confirmations = 0;
-    let lastTransform: Homography | null = null;
-    let count = 0, fps = 0, fpsStart = performance.now();
-    let lastPoint: Point = { x: 0.5, y: 0.5, t: 0 };
-    const end = (now: number) => {
-      latest.current.onSample({ ...lastPoint, t: now }, false);
-      down = false; confirmations = 0; smooth = null;
-    };
-    function tick(now: number) {
-      if (cancelled) return;
-      try {
-        const { videoRef, sideVideoRef, homography, zCalibration, onSample } = latest.current;
-        const video = videoRef.current;
-        if (now - lastProcessed >= 30 && video && video.readyState >= 2 && video.videoWidth > 0 && video.currentTime !== lastFrame) {
-          lastProcessed = now; lastFrame = video.currentTime; topSeen = now;
-          const point = detectTop(video, now);
-          const side = sideVideoRef.current;
-          const hasSide = !!side?.srcObject;
-          if (side && side.readyState >= 2 && side.videoWidth > 0 && side.currentTime !== lastSideFrame) {
-            lastSideFrame = side.currentTime;
-            sidePoint = detectSide(side, now); sideSeen = now;
-          }
-          if (!hasSide || now - sideSeen > 180) sidePoint = null;
-          const height = sidePoint && zCalibration && Math.abs(zCalibration.hoverY - zCalibration.touchY) >= 0.02
-            ? zLevel(sidePoint.y, zCalibration) : null;
-          const z = height !== null && Number.isFinite(height) ? height : null;
-          let pagePoint: { x: number; y: number } | null = null;
-          let error: string | null = warning;
-          if (homography !== lastTransform) { end(now); lastTransform = homography; }
-          if (point && homography) {
-            const mapped = project(point, homography);
-            if (Number.isFinite(mapped.x) && Number.isFinite(mapped.y) && mapped.x >= 0 && mapped.x <= 1 && mapped.y >= 0 && mapped.y <= 1) {
-              if (smooth && Math.hypot(mapped.x - smooth.x, mapped.y - smooth.y) > 0.25) end(now);
-              smooth = smooth ? { x: smooth.x * 0.25 + mapped.x * 0.75, y: smooth.y * 0.25 + mapped.y * 0.75 } : mapped;
-              pagePoint = smooth;
-              const o = latest.current;
-              const contact = surfaceAllowsDrawing(o.automatic, o.drawHeld.current, z, down);
-              if (!contact) { down = false; confirmations = 0; }
-              else if (!down) down = ++confirmations >= 2;
-              lastPoint = { ...pagePoint, t: now };
-              onSample(lastPoint, down);
-            } else {
-              end(now);
-              error = 'LED is outside the calibrated page, or calibration is invalid. Recalibrate all four corners.';
-            }
-          } else end(now);
-          // One shared AI session, alternating cameras; no overlapping inference or input-buffer writes.
-          if (session && !modelBusy && now - lastModel >= 100) {
-            const useSide = nextView === 1 && side && side.readyState >= 2 && side.videoWidth > 0;
-            verify(useSide ? side : video, useSide ? sideIdentity : topIdentity);
-            nextView = useSide ? 0 : 1; lastModel = now;
-          }
-          count++;
-          if (now - fpsStart >= 1000) { fps = Math.round(count * 1000 / (now - fpsStart)); count = 0; fpsStart = now; }
-          // Detection/drawing run every processed frame; React diagnostics update at most 10 Hz.
-          if (now - lastPublish >= 100) {
-            lastPublish = now;
-            setState({ status: point ? 'ready' : 'led-not-found', error, point, sidePoint, pagePoint, z, fps });
-          }
-        } else if (now - topSeen > 180) {
-          end(now);
-          if (now - lastPublish >= 100) {
-            lastPublish = now;
-            setState(s => ({ ...s, status: 'led-not-found', point: null, sidePoint: null, pagePoint: null, z: null }));
-          }
-        }
-        frame = requestAnimationFrame(tick);
-      } catch (e) {
-        end(now);
-        setState({ status: 'error', error: e instanceof Error ? e.message : String(e), point: null, sidePoint: null, pagePoint: null, z: null, fps: 0 });
-      }
-    }
-    const start = async () => {
-      setState(s => ({ ...s, status: 'loading', error: null }));
-      try {
-        ort = await import('onnxruntime-web/webgpu');
-        if (cancelled) return;
-        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/';
-        const url = `${import.meta.env.BASE_URL}models/green_led.onnx`;
-        let created: InferenceSession;
-        try {
-          created = await ort.InferenceSession.create(url, { executionProviders: ['webgpu'] });
-        } catch {
-          if (cancelled) return;
-          warning = 'AI LED model is running on the CPU; tracking may be slower. Both camera feeds are retained.';
-          created = await ort.InferenceSession.create(url, { executionProviders: ['wasm'] });
-        }
-        if (cancelled) { await created.release(); return; }
-        session = created;
-        frame = requestAnimationFrame(tick);
-      } catch (e) {
-        if (!cancelled) setState(s => ({ ...s, status: 'error', error: e instanceof Error ? e.message : String(e) }));
+    let frame = 0;
+    let busy = false;
+    let lastTimestamp = -1;
+    let session: ort.InferenceSession | null = null;
+    let smoothed: { x: number; y: number } | null = null;
+    let down = false;
+    let lastReportedStatus: LedTrackingStatus = "loading";
+    const reportStatus = (next: LedTrackingStatus) => {
+      if (lastReportedStatus !== next) {
+        lastReportedStatus = next;
+        setStatus(next);
       }
     };
-    void start();
-    return () => {
-      cancelled = true; cancelAnimationFrame(frame); end(performance.now());
-      const release = () => { void session?.release(); };
-      if (pending) void pending.then(release, release); else release();
-    };
-  }, [options.enabled]);
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = INPUT;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    const input = new Float32Array(3 * INPUT * INPUT);
 
-  return { ...state, threshold, setThreshold, mode, setMode };
+    const lost = (now: number) => {
+      smoothed = null;
+      down = false;
+      setPagePoint(null);
+      callbackRef.current({ x: 0, y: 0, t: now }, false);
+      reportStatus("led-not-found");
+    };
+
+    const findLed = async (video: HTMLVideoElement) => {
+      const size = { width: video.videoWidth, height: video.videoHeight };
+      const box = letterbox(size.width, size.height);
+      ctx.fillStyle = "rgb(114, 114, 114)"; // ultralytics' letterbox grey
+      ctx.fillRect(0, 0, INPUT, INPUT);
+      ctx.drawImage(video, box.padX, box.padY, size.width * box.scale, size.height * box.scale);
+      toTensor(ctx.getImageData(0, 0, INPUT, INPUT).data, input);
+      const result = await session!.run({ images: new ort.Tensor("float32", input, [1, 3, INPUT, INPUT]) });
+      return pickLed(result.output0.data as Float32Array, box, size);
+    };
+
+    const detect = async (video: HTMLVideoElement, transform: Homography | null) => {
+      const led = await findLed(video);
+      const side = sideVideoRef.current;
+      const hasSide = !!side?.srcObject && side.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+      // Run even before z is calibrated, so the calibration buttons can read where the LED is.
+      const sideLed = hasSide ? await findLed(side) : null;
+      if (cancelled) return;
+      const now = performance.now();
+      setPoint(led && { x: led.x, y: led.y }); // shown on the camera preview, even outside the page
+      setSidePoint(sideLed && { x: sideLed.x, y: sideLed.y });
+      const cal = zCalibrationRef.current;
+      const height = cal && sideLed ? zLevel(sideLed.y, cal) : null;
+      setZ(height);
+      if (!led) return lost(now);
+      // No corners yet: the LED is only being located, for corner and height calibration.
+      if (!transform) {
+        callbackRef.current({ x: 0, y: 0, t: now }, false);
+        return reportStatus("ready");
+      }
+      const mapped = project(led, transform);
+      if (mapped.x < 0 || mapped.x > 1 || mapped.y < 0 || mapped.y > 1) return lost(now);
+      smoothed = smoothed
+        ? { x: smoothed.x * 0.3 + mapped.x * 0.7, y: smoothed.y * 0.3 + mapped.y * 0.7 }
+        : mapped;
+      setPagePoint(smoothed); // shown on the page even while lifted, so you can see where you'll write
+      // Side camera on but not calibrated, or it lost the LED: stay up rather than draw stray lines.
+      down = height !== null ? nextPenDown(height, down) : !hasSide;
+      callbackRef.current({ ...smoothed, t: now }, down);
+      reportStatus("ready");
+    };
+
+    const track = () => {
+      const video = videoRef.current;
+      const transform = homographyRef.current;
+      // Inference is async and can take longer than a frame, so skip frames while one is running.
+      if (!busy && session && video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.currentTime !== lastTimestamp) {
+        busy = true;
+        lastTimestamp = video.currentTime;
+        detect(video, transform)
+          .catch((reason) => {
+            if (cancelled) return;
+            setError(reason instanceof Error ? reason.message : "LED detection failed.");
+            setStatus("error");
+            cancelled = true;
+          })
+          .finally(() => { busy = false; });
+      }
+      if (!cancelled) frame = requestAnimationFrame(track);
+    };
+
+    const start = async () => {
+      reportStatus("loading");
+      setError(null);
+      try {
+        // WebGPU runs a frame in ~30 ms off the main thread; the CPU fallback blocks the page ~200 ms per frame.
+        const created = await ort.InferenceSession.create(MODEL_URL, { executionProviders: ["webgpu"] })
+          .catch((reason) => {
+            console.error("WebGPU session failed:", reason);
+            setError(!("gpu" in navigator)
+              ? "Chrome has WebGPU turned off here, so pen tracking runs on the CPU and will lag. Check chrome://gpu and that Settings → System → \"Use graphics acceleration\" is on."
+              : `The GPU couldn't run the LED model (${reason instanceof Error ? reason.message : String(reason)}), so pen tracking runs on the CPU and will lag.`);
+            return ort.InferenceSession.create(MODEL_URL, { executionProviders: ["wasm"] });
+          });
+        if (cancelled) {
+          created.release();
+          return;
+        }
+        session = created;
+        track();
+      } catch (reason) {
+        if (!cancelled) {
+          setError(reason instanceof Error ? reason.message : "The LED model could not be loaded.");
+          setStatus("error");
+        }
+      }
+    };
+    start();
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      session?.release();
+      callbackRef.current({ x: 0, y: 0, t: performance.now() }, false);
+    };
+  }, [enabled, videoRef, sideVideoRef]);
+
+  return { status, error, point, sidePoint, z, pagePoint };
 }
