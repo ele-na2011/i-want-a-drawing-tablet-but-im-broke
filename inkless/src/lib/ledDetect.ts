@@ -52,8 +52,8 @@ export function zLevel(y: number, cal: ZCalibration): number {
 
 // Two thresholds so detector jitter near the paper doesn't break a stroke into dashes.
 // Measured: a tip on the paper reads 0.5-0.78 (the one-frame touch reference sits low), lifted reads ~1.0.
-export const DOWN_BELOW = 0.85;
-export const UP_ABOVE = 0.95; // 1.05 was too high: a lifted pen reads ~1.0, so strokes never ended
+export const DOWN_BELOW = 0.8;
+export const UP_ABOVE = 0.88; // 0.95 kept drawing while lifting; 1.05 never ended strokes
 export function nextPenDown(z: number, wasDown: boolean): boolean {
   return wasDown ? z < UP_ABOVE : z < DOWN_BELOW;
 }

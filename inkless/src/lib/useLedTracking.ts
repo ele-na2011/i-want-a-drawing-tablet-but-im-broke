@@ -4,9 +4,6 @@ import { project, type Homography } from "./homography";
 import { INPUT, letterbox, nextPenDown, pickLed, toTensor, zLevel, type ZCalibration } from "./ledDetect";
 import type { Point } from "../types";
 
-// Frames the LED can go missing before the pen counts as lifted; one dropped detection shouldn't cut a stroke.
-const MISS_GRACE = 2; // 4 kept drawing for a moment after lifting
-
 export type LedTrackingStatus = "off" | "loading" | "ready" | "led-not-found" | "error";
 
 // Same model as track_led.py (best.pt), exported with: YOLO("best.pt").export(format="onnx", imgsz=640, opset=17)
@@ -52,8 +49,6 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
     let busy = false;
     let lastTimestamp = -1;
     let sessions: ort.InferenceSession[] = [];
-    let topMisses = 0;
-    let sideMisses = 0;
     let smoothed: { x: number; y: number } | null = null;
     let down = false;
     let lastReportedStatus: LedTrackingStatus = "loading";
@@ -106,11 +101,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
       const cal = zCalibrationRef.current;
       const height = cal && sideLed ? zLevel(sideLed.y, cal) : null;
       setZ(height);
-      if (!led) {
-        if (++topMisses > MISS_GRACE) lost(now);
-        return;
-      }
-      topMisses = 0;
+      if (!led) return lost(now);
       // No corners yet: the LED is only being located, for corner and height calibration.
       if (!transform) {
         callbackRef.current({ x: 0, y: 0, t: now }, false);
@@ -123,11 +114,7 @@ export function useLedTracking({ videoRef, homography, sideVideoRef, zCalibratio
         : mapped;
       setPagePoint(smoothed); // shown on the page even while lifted, so you can see where you'll write
       // Side camera on but not calibrated, or it lost the LED: stay up rather than draw stray lines.
-      if (height !== null) {
-        sideMisses = 0;
-        down = nextPenDown(height, down);
-      } else if (!hasSide) down = true;
-      else if (++sideMisses > MISS_GRACE) down = false;
+      down = height !== null ? nextPenDown(height, down) : !hasSide;
       callbackRef.current({ ...smoothed, t: now }, down);
       reportStatus("ready");
     };
