@@ -103,8 +103,12 @@ export function useLedTracking({ videoRef, homography, enabled, onSample }: Opti
       reportStatus("loading");
       setError(null);
       try {
-        // WebGPU when the browser has it, otherwise the CPU (wasm) backend.
-        const created = await ort.InferenceSession.create(MODEL_URL, { executionProviders: ["webgpu", "wasm"] });
+        // WebGPU runs a frame in ~30 ms off the main thread; the CPU fallback blocks the page ~200 ms per frame.
+        const created = await ort.InferenceSession.create(MODEL_URL, { executionProviders: ["webgpu"] })
+          .catch(() => {
+            setError("This browser has no WebGPU, so pen tracking runs on the CPU and the page will lag. Use an up-to-date Chrome or Edge.");
+            return ort.InferenceSession.create(MODEL_URL, { executionProviders: ["wasm"] });
+          });
         if (cancelled) {
           created.release();
           return;

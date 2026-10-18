@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ERASER, type DrawingState, type Point } from "./types";
 import {
   allStrokes, beginStroke, emptyDrawing,
@@ -60,6 +60,8 @@ export default function App() {
 
   const doc = store.docs.find((d) => d.id === docId);
   const dirty = drawing.strokes !== saved.strokes || background !== saved.background;
+  // Same array until the drawing changes, so other re-renders (e.g. the LED marker, every camera frame) don't repaint the page.
+  const strokes = useMemo(() => allStrokes(drawing), [drawing]);
 
   // Warn before closing the tab with unsaved work.
   useEffect(() => {
@@ -336,7 +338,7 @@ export default function App() {
       <main className="canvas-panel">
         <PageView>
           <DrawingCanvas
-            strokes={allStrokes(drawing)} onSample={onSample} background={background}
+            strokes={strokes} onSample={onSample} background={background}
             cursorColor={tool === "eraser" ? "rgba(0, 0, 0, 0.56)" : color}
             cursorSize={Math.max(8, tool === "eraser" ? thickness * 4 : thickness)}
           />
