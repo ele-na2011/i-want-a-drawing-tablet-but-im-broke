@@ -100,7 +100,7 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
 
       <main className="home-main">
         <button className="avatar" onClick={onSettings} aria-label="Account settings">
-          <img src={avatar} alt="" />
+            <img src={USER.avatar || avatar} referrerPolicy="no-referrer" alt="" />
         </button>
         <h1 className="greeting">Hey, {USER.first}!</h1>
         <button className="new-project" onClick={onNewProject}>

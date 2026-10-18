@@ -18,7 +18,7 @@ import Toolbar, { COLORS, type Tool } from "./components/Toolbar";
 import SignIn from "./components/SignIn";
 import Home from "./components/Home";
 import AskDialog, { type Ask } from "./components/AskDialog";
-import SettingsDialog from "./components/SettingsDialog";
+import SettingsDialog, { USER, type AccountInfo } from "./components/SettingsDialog";
 import CalibrationOverlay from "./components/CalibrationOverlay";
 import { useCamera } from "./lib/src/lib/useCamera";
 import type { Homography } from "./lib/homography";
@@ -224,6 +224,18 @@ export default function App() {
     setView("home");
   };
 
+  // Real account info from the Google login, shown in Settings.
+  const meta: Record<string, unknown> = session?.user.user_metadata ?? {};
+  const email = session?.user.email ?? "";
+  const fullName = (meta.full_name as string | undefined) ?? (meta.name as string | undefined) ?? email;
+  const account: AccountInfo = {
+    first: fullName.split(" ")[0] || email,
+    name: fullName,
+    email,
+    avatar: (meta.avatar_url as string | undefined) ?? (meta.picture as string | undefined),
+  };
+    if (session) Object.assign(USER, account); // replace the Figma placeholder with the real user
+
   const dialog = ask && <AskDialog key={ask.title + ask.confirm} ask={ask} onClose={() => setAsk(null)} />;
 
   if (loading) return null;
@@ -239,6 +251,7 @@ export default function App() {
         {dialog}
         {settingsOpen && (
           <SettingsDialog
+            user={account}
             onClose={() => setSettingsOpen(false)}
             onLogOut={async () => { setSettingsOpen(false); await supabase.auth.signOut(); setView("home"); }}
           />

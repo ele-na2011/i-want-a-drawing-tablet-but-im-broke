@@ -1,13 +1,27 @@
-import { useEffect, useRef } from "react";
-import avatar from "../assets/avatar.png";
 
-// shortcut: one hardcoded account (from the Figma mock) until real sign-in exists
-export const USER = { first: "Elena", name: "Elena Y", email: "elenay.hello@gmail.com" };
+import { useEffect, useRef } from "react";
+import fallbackAvatar from "../assets/avatar.png";
+
+
+// fallback only: other files may still import USER, so it stays exported
+export const USER: AccountInfo = { first: "Guest", name: "Guest", email: "" };
+
+export type AccountInfo = { first: string; name: string; email: string; avatar?: string };
 
 // Figma "MacBook Air - 4": opened from the sidebar's Settings button or the avatar.
-export default function SettingsDialog({ onClose, onLogOut }: { onClose: () => void; onLogOut: () => void }) {
+export default function SettingsDialog({
+  onClose,
+  onLogOut,
+  user,
+}: {
+  onClose: () => void;
+  onLogOut: () => void;
+  user?: AccountInfo;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { ref.current?.showModal(); }, []);
+
+  const account: AccountInfo = user ?? USER;
 
   return (
     <dialog
@@ -17,10 +31,10 @@ export default function SettingsDialog({ onClose, onLogOut }: { onClose: () => v
     >
       <h2 id="settings-title">Settings</h2>
       <div className="settings-account">
-        <img src={avatar} alt="" />
+        <img src={account.avatar || fallbackAvatar} alt="" referrerPolicy="no-referrer" />
         <div>
-          <p className="settings-name">{USER.name}</p>
-          <p className="settings-email">{USER.email}</p>
+          <p className="settings-name">{account.name}</p>
+          <p className="settings-email">{account.email}</p>
         </div>
       </div>
       <button className="settings-logout" onClick={onLogOut}>Log out</button>
