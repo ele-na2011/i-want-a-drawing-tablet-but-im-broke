@@ -1,4 +1,6 @@
+import { useState } from "react";
 import logo from "../assets/logo.png";
+import menu from "../assets/menu.svg";
 import plus from "../assets/plus-large.svg";
 import documentIcon from "../assets/document.png";
 import list from "../assets/list.png";
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export default function Home({ store, place, onPlace, onNewDoc, onNewProject, onNewFolder, onOpenDoc, onDocMenu, onSettings }: Props) {
+  const [collapsed, setCollapsed] = useState(false); // Figma "MacBook Air - 7": sidebar folded to a 60px rail
   const docs = docsIn(store, place);
   const heading =
     store.folders.find((f) => f.id === place.folderId)?.name ??
@@ -35,7 +38,7 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
     childFolders(store, projectId, parentId).map((f) => (
       <li key={f.id}>
         <button
-          style={{ paddingLeft: 32 + depth * 24 }}
+          style={{ paddingLeft: `calc(${32 + depth * 32} * var(--u))` }}
           aria-pressed={selected({ projectId, folderId: f.id })}
           onClick={() => onPlace({ projectId, folderId: f.id })}
         >
@@ -46,45 +49,53 @@ export default function Home({ store, place, onPlace, onNewDoc, onNewProject, on
     ));
 
   return (
-    <div className="home">
+    <div className={`home${collapsed ? " sidebar-collapsed" : ""}`}>
       <nav className="sidebar">
-        <div className="logo logo-small"><img src={logo} alt="inkless" /></div>
-        <ul className="sidebar-nav">
-          <li><button onClick={onNewDoc}><img src={documentIcon} alt="" />New document</button></li>
-          <li><button onClick={onNewProject}><img src={list} alt="" />New project</button></li>
-          <li>
-            <button onClick={onNewFolder} disabled={!place.projectId} title={place.projectId ? undefined : "Pick a project first"}>
-              <img src={folderIcon} alt="" />New folder
-            </button>
-          </li>
-          {/* TODO (Person 3): calibration flow */}
-          <li><button><img src={spinner} alt="" />Calibrate</button></li>
-        </ul>
-
-        <div className="workspaces">
-          <button
-            className="workspace" aria-pressed={selected({ projectId: null, folderId: null })}
-            onClick={() => onPlace({ projectId: null, folderId: null })}
-          >
-            All documents
-          </button>
-          {store.projects.map((p) => (
-            <div key={p.id}>
-              <button
-                className="workspace" aria-pressed={selected({ projectId: p.id, folderId: null })}
-                onClick={() => onPlace({ projectId: p.id, folderId: null })}
-              >
-                {p.name}
-              </button>
-              <ul className="folder-tree">{tree(p.id, null, 0)}</ul>
-            </div>
-          ))}
-        </div>
-
-        <button className="settings" onClick={onSettings}>
-          <img src={settings} alt="" />
-          Settings
+        <button
+          className="sidebar-toggle" aria-expanded={!collapsed}
+          aria-label={collapsed ? "Show sidebar" : "Hide sidebar"} onClick={() => setCollapsed(!collapsed)}
+        >
+          <img src={menu} alt="" />
         </button>
+        <div className="sidebar-body" inert={collapsed}>
+          <div className="logo logo-small"><img src={logo} alt="inkless" /></div>
+          <ul className="sidebar-nav">
+            <li><button onClick={onNewDoc}><img src={documentIcon} alt="" />New document</button></li>
+            <li><button onClick={onNewProject}><img src={list} alt="" />New project</button></li>
+            <li>
+              <button onClick={onNewFolder} disabled={!place.projectId} title={place.projectId ? undefined : "Pick a project first"}>
+                <img src={folderIcon} alt="" />New folder
+              </button>
+            </li>
+            {/* TODO (Person 3): calibration flow */}
+            <li><button><img src={spinner} alt="" />Calibrate</button></li>
+          </ul>
+
+          <div className="workspaces">
+            <button
+              className="workspace" aria-pressed={selected({ projectId: null, folderId: null })}
+              onClick={() => onPlace({ projectId: null, folderId: null })}
+            >
+              All documents
+            </button>
+            {store.projects.map((p) => (
+              <div key={p.id}>
+                <button
+                  className="workspace" aria-pressed={selected({ projectId: p.id, folderId: null })}
+                  onClick={() => onPlace({ projectId: p.id, folderId: null })}
+                >
+                  {p.name}
+                </button>
+                <ul className="folder-tree">{tree(p.id, null, 0)}</ul>
+              </div>
+            ))}
+          </div>
+
+          <button className="settings" onClick={onSettings}>
+            <img src={settings} alt="" />
+            Settings
+          </button>
+        </div>
       </nav>
 
       <main className="home-main">
