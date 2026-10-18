@@ -30,6 +30,13 @@ interface Props {
   onSettings: () => void;
   firstName: string;
 }
+const formatEdited = (t: number) =>
+  Number.isFinite(t)
+    ? new Date(t).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "unknown";
 
 export default function Home({
   store,
@@ -243,6 +250,9 @@ export default function Home({
                   </div>
 
                   <span className="recent-name">{d.name}</span>
+                  <span className="recent-edited">
+                    Last edited {formatEdited(d.updatedAt)}
+                  </span>
                 </li>
               ))}
             </ul>
