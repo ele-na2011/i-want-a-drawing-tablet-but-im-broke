@@ -472,6 +472,8 @@ export default function App() {
               cameras={camera.devices}
               selectedCamera={camera.selectedDeviceId}
               onSelectCamera={camera.setSelectedDeviceId}
+              selectedSecondaryCamera={camera.selectedSecondaryId}
+              onSelectSecondaryCamera={camera.setSelectedSecondaryId}
               onStartCamera={camera.start}
               tracking={tracking}
               trackerStatus={tracker.status}
@@ -617,6 +619,8 @@ export default function App() {
           cameras={camera.devices}
           selectedCamera={camera.selectedDeviceId}
           onSelectCamera={camera.setSelectedDeviceId}
+          selectedSecondaryCamera={camera.selectedSecondaryId}
+          onSelectSecondaryCamera={camera.setSelectedSecondaryId}
           onStartCamera={camera.start}
           tracking={tracking}
           trackerStatus={tracker.status}

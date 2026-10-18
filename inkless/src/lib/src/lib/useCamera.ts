@@ -14,7 +14,8 @@ export function useCamera() {
   const [error, setError] = useState<string | null>(null);
   const [activeCameraCount, setActiveCameraCount] = useState(0);
   const [devices, setDevices] = useState<CameraDevice[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [selectedDeviceId, setSelectedDeviceId] = useState(""); // camera 1: X/Y
+  const [selectedSecondaryId, setSelectedSecondaryId] = useState(""); // webcam: Z only; "" picks any other camera
 
   const refreshDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return [];
@@ -36,7 +37,7 @@ export function useCamera() {
     setStatus("idle");
   }, []);
 
-  const start = useCallback(async (deviceId?: string) => {
+  const start = useCallback(async (deviceId?: string, secondaryDeviceId?: string) => {
     setStatus("requesting");
     setError(null);
     try {
@@ -54,9 +55,9 @@ export function useCamera() {
       const primaryStream = await navigator.mediaDevices.getUserMedia(constraints(requestedPrimaryId));
       const available = await refreshDevices();
       const primaryId = primaryStream.getVideoTracks()[0]?.getSettings().deviceId || requestedPrimaryId;
-      const secondaryId = available
-        .map((camera) => camera.deviceId)
-        .find((id) => id && id !== primaryId);
+      const secondaryId = secondaryDeviceId && secondaryDeviceId !== primaryId
+        ? secondaryDeviceId
+        : available.map((camera) => camera.deviceId).find((id) => id && id !== primaryId);
       const streams = [primaryStream];
       if (secondaryId) {
         try {
@@ -76,6 +77,7 @@ export function useCamera() {
         }
       }
       setSelectedDeviceId(primaryId);
+      setSelectedSecondaryId(streams[1]?.getVideoTracks()[0]?.getSettings().deviceId || secondaryId || "");
       setActiveCameraCount(streams.length);
       await refreshDevices();
       setStatus("ready");
@@ -114,5 +116,5 @@ export function useCamera() {
     };
   }, [refreshDevices, stop]);
 
-  return { videoRef, secondaryVideoRef, status, error, devices, activeCameraCount, selectedDeviceId, setSelectedDeviceId, start, stop, attach };
+  return { videoRef, secondaryVideoRef, status, error, devices, activeCameraCount, selectedDeviceId, setSelectedDeviceId, selectedSecondaryId, setSelectedSecondaryId, start, stop, attach };
 }

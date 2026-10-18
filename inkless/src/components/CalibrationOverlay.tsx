@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { findHomography, type CalibrationPoint, type Homography } from "../lib/homography";
 import { fuseSensors } from "../lib/sensorFusion";
 import { previewToVideoPoint, videoToPreviewPoint } from "../lib/preview";
@@ -19,7 +19,9 @@ interface Props {
   cameras: { deviceId: string; label: string }[];
   selectedCamera: string;
   onSelectCamera: (deviceId: string) => void;
-  onStartCamera: (deviceId?: string) => void;
+  selectedSecondaryCamera: string;
+  onSelectSecondaryCamera: (deviceId: string) => void;
+  onStartCamera: (deviceId?: string, secondaryDeviceId?: string) => void;
   tracking: boolean;
   trackerStatus: HandTrackingStatus | LedTrackingStatus; // of the tracker trackingMode picks
   trackerError: string | null;
@@ -37,13 +39,14 @@ interface Props {
 const destination: CalibrationPoint[] = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 const labels = ["top-left", "top-right", "bottom-right", "bottom-left"];
 
-export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode, onVideoMount, ledPoint, sideLedPoint, penHeight, zCalibrated, onZCalibrated }: Props) {
+export default function CalibrationOverlay({ videoRef, secondaryVideoRef, activeCameraCount, cameraStatus, cameraError, calibrated, onCalibrated, cameras, selectedCamera, onSelectCamera, selectedSecondaryCamera, onSelectSecondaryCamera, onStartCamera, tracking, trackerStatus, trackerError, onTracking, trackingMode, onTrackingMode, onVideoMount, ledPoint, sideLedPoint, penHeight, zCalibrated, onZCalibrated }: Props) {
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([]);
   const [touchY, setTouchY] = useState<number | null>(null);
   const [zError, setZError] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const sidePreviewRef = useRef<HTMLDivElement>(null);
+  const pickerId = useId(); // this overlay can be mounted twice (side panel + calibration dialog)
   useEffect(onVideoMount, [onVideoMount]);
   const status: TrackingStatus = tracking && trackerStatus === "ready" && calibrated
     ? "drawing"
@@ -140,17 +143,23 @@ export default function CalibrationOverlay({ videoRef, secondaryVideoRef, active
           Two-camera setup: {activeCameraCount}/2 active
         </span>
         {cameraError && <p className="camera-error">{cameraError}</p>}
-        {cameraStatus !== "ready" && <button onClick={() => onStartCamera(selectedCamera || undefined)}>{cameraStatus === "requesting" ? "Opening camera..." : "Enable camera"}</button>}
+        {cameraStatus !== "ready" && <button onClick={() => onStartCamera(selectedCamera || undefined, selectedSecondaryCamera || undefined)}>{cameraStatus === "requesting" ? "Opening camera..." : "Enable camera"}</button>}
         {cameraStatus === "ready" && <button onClick={reset}>{points.length === 4 ? "Recalibrate" : "Calibrate workspace"}</button>}
       </div>
       {cameras.length > 0 && (
-        <label className="camera-select">
-          Webcam
-          <select value={selectedCamera} onChange={(event) => onSelectCamera(event.target.value)}>
+        // Camera 1 sets the corners, the webcam sets pen height: after swapping them, redo both calibrations.
+        <div className="camera-select">
+          <label htmlFor={`${pickerId}-xy`}>Camera (X/Y)</label>
+          <select id={`${pickerId}-xy`} value={selectedCamera} onChange={(event) => onSelectCamera(event.target.value)}>
             {cameras.map((camera) => <option value={camera.deviceId} key={camera.deviceId}>{camera.label}</option>)}
           </select>
-          <button type="button" onClick={() => onStartCamera(selectedCamera)}>Use selected</button>
-        </label>
+          <button type="button" onClick={() => onStartCamera(selectedCamera, selectedSecondaryCamera || undefined)}>Use selected</button>
+          <label htmlFor={`${pickerId}-z`}>Webcam (Z)</label>
+          <select id={`${pickerId}-z`} value={selectedSecondaryCamera} onChange={(event) => onSelectSecondaryCamera(event.target.value)}>
+            <option value="">Any other camera</option>
+            {cameras.filter((camera) => camera.deviceId !== selectedCamera).map((camera) => <option value={camera.deviceId} key={camera.deviceId}>{camera.label}</option>)}
+          </select>
+        </div>
       )}
       <div className="tracking-mode" aria-label="Tracking method">
         <strong>Tracking method</strong>
