@@ -31,4 +31,4 @@ Required Materials: Webcam, Pen Attachment
 + Google Drive integration.
 
 ## Credits
-CLAUDEEEEEEEEE
+Thanks Claude for the help with bug fixes!
